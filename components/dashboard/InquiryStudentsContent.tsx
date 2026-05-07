@@ -442,7 +442,7 @@ export function InquiryStudentsContent() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gray-900">
-                    <th className="text-left px-4 py-3 text-white font-semibold text-xs">#</th>
+                    <th className="text-left px-4 py-3 text-white font-semibold text-xs">Sr no.</th>
                     <th className="text-left px-4 py-3 text-white font-semibold text-xs">Student</th>
                     <th className="text-left px-4 py-3 text-white font-semibold text-xs">Contact</th>
                     <th className="text-left px-4 py-3 text-white font-semibold text-xs">Standard</th>
