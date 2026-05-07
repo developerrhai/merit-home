@@ -15,7 +15,7 @@ export interface Chapter {
 }
 
 export interface Subject {
-  id: string
+  id: string  
   name: string
   standardId: string
 }
