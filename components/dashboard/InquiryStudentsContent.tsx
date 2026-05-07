@@ -3,6 +3,9 @@
 import { useState, useEffect, useCallback } from "react"
 import { inquiryExtraApi } from "@/lib/api"
 
+// ─────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────
 interface Inquiry {
   id: number
   studentName: string
@@ -17,6 +20,7 @@ interface Inquiry {
   fatherOccupation: string
   motherOccupation: string
   address: string
+  branch: string          // NEW
   email: string
   futurePlans: string
   reference: string
@@ -24,6 +28,10 @@ interface Inquiry {
   sex: string
   takingCoaching: string
   hostelRequired: string
+  status: string          // NEW  "Confirmed" | "Pending" | "Maybe"
+  feedback1: string       // NEW
+  feedback2: string       // NEW
+  notes: string           // NEW
   created_at: string
 }
 
@@ -37,11 +45,12 @@ interface InquiryExtraRow {
   location: string
   board: string
   standard: string
-  status: string
+  status: string          // NEW
   video: string
   dob: string
   email: string
   address: string
+  branch: string          // NEW
   college_name: string
   college_timing: string
   last_exam_marks: string
@@ -53,34 +62,26 @@ interface InquiryExtraRow {
   sex: string
   taking_coaching: string
   hostel_required: string
+  feedback1: string       // NEW
+  feedback2: string       // NEW
+  notes: string           // NEW
   admin_id: number
   inquiry_date: string
 }
 
+// ─────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────
 const EMPTY_FORM = {
-  name: "",
-  phone: "",
-  father_name: "",
-  father_phone: "",
-  dob: "",
-  sex: "",
-  email: "",
-  address: "",
-  standard: "",
-  course: "",
-  last_exam_marks: "",
-  college_name: "",
-  college_timing: "",
-  future_plans: "",
-  father_occupation: "",
-  mother_occupation: "",
-  sibling_name: "",
-  reference: "",
-  taking_coaching: "",
-  hostel_required: "",
+  name: "", phone: "", father_name: "", father_phone: "", dob: "", sex: "",
+  email: "", address: "", branch: "",
+  standard: "", course: "", last_exam_marks: "", college_name: "", college_timing: "",
+  future_plans: "", father_occupation: "", mother_occupation: "", sibling_name: "",
+  reference: "", taking_coaching: "", hostel_required: "",
+  status: "Pending", feedback1: "", feedback2: "", notes: "",
 }
 
-const BADGE: Record<string, string> = {
+const REF_BADGE: Record<string, string> = {
   "Social Media (Instagram/Facebook)": "bg-pink-100 text-pink-700 border-pink-200",
   "Google":    "bg-blue-100 text-blue-700 border-blue-200",
   "Hoarding":  "bg-purple-100 text-purple-700 border-purple-200",
@@ -89,6 +90,18 @@ const BADGE: Record<string, string> = {
   "Friends":   "bg-green-100 text-green-700 border-green-200",
   "Pamphlets": "bg-yellow-100 text-yellow-700 border-yellow-200",
   "Other":     "bg-gray-100 text-gray-600 border-gray-200",
+}
+
+const STATUS_STYLES: Record<string, string> = {
+  Confirmed: "bg-green-50 border-green-200 text-green-700",
+  Pending:   "bg-yellow-50 border-yellow-300 text-yellow-700",
+  Maybe:     "bg-blue-50 border-blue-200 text-blue-600",
+}
+
+const STATUS_DOT: Record<string, string> = {
+  Confirmed: "bg-green-500",
+  Pending:   "bg-yellow-400",
+  Maybe:     "bg-blue-400",
 }
 
 /* Drawer CSS animations injected once into the page */
@@ -110,6 +123,9 @@ const DRAWER_STYLES = `
   .fade-in-bg { animation: fadeInBg 0.25s ease forwards; }
 `
 
+// ─────────────────────────────────────────────
+// Component
+// ─────────────────────────────────────────────
 export function InquiryStudentsContent() {
   const [inquiries, setInquiries]     = useState<Inquiry[]>([])
   const [loading, setLoading]         = useState(true)
@@ -118,10 +134,11 @@ export function InquiryStudentsContent() {
   const [selected, setSelected]       = useState<Inquiry | null>(null)
   const [filterSex, setFilterSex]     = useState("")
   const [filterBatch, setFilterBatch] = useState("")
+  const [filterStatus, setFilterStatus] = useState("")  // NEW
 
   // ── Drawer state ──
-  const [drawerMounted, setDrawerMounted] = useState(false)  // controls DOM presence
-  const [drawerOpen, setDrawerOpen]       = useState(false)  // controls animation class
+  const [drawerMounted, setDrawerMounted] = useState(false)
+  const [drawerOpen, setDrawerOpen]       = useState(false)
   const [formData, setFormData]           = useState(EMPTY_FORM)
   const [formLoading, setFormLoading]     = useState(false)
   const [formError, setFormError]         = useState("")
@@ -135,26 +152,31 @@ export function InquiryStudentsContent() {
       if (data.success) {
         const mapped: Inquiry[] = (data.data || []).map((row: InquiryExtraRow) => ({
           id: row.id,
-          studentName: row.name || "",
-          dob: row.dob || "",
-          studentContact: row.phone || "",
-          parentContact: row.father_phone || "",
-          batch: row.course || "",
-          standard: row.standard || "",
-          lastExamMarks: row.last_exam_marks || "",
-          collegeName: row.college_name || "",
-          collegeTiming: row.college_timing || "",
-          fatherOccupation: row.father_occupation || "",
-          motherOccupation: row.mother_occupation || "",
-          address: row.address || "",
-          email: row.email || "",
-          futurePlans: row.future_plans || "",
-          reference: row.reference || "",
-          siblingName: row.sibling_name || "",
-          sex: row.sex || "",
-          takingCoaching: row.taking_coaching || "",
-          hostelRequired: row.hostel_required || "",
-          created_at: row.inquiry_date || "",
+          studentName:     row.name || "",
+          dob:             row.dob || "",
+          studentContact:  row.phone || "",
+          parentContact:   row.father_phone || "",
+          batch:           row.course || "",
+          standard:        row.standard || "",
+          lastExamMarks:   row.last_exam_marks || "",
+          collegeName:     row.college_name || "",
+          collegeTiming:   row.college_timing || "",
+          fatherOccupation:row.father_occupation || "",
+          motherOccupation:row.mother_occupation || "",
+          address:         row.address || "",
+          branch:          row.branch || "",        // NEW
+          email:           row.email || "",
+          futurePlans:     row.future_plans || "",
+          reference:       row.reference || "",
+          siblingName:     row.sibling_name || "",
+          sex:             row.sex || "",
+          takingCoaching:  row.taking_coaching || "",
+          hostelRequired:  row.hostel_required || "",
+          status:          row.status || "Pending", // NEW
+          feedback1:       row.feedback1 || "",     // NEW
+          feedback2:       row.feedback2 || "",     // NEW
+          notes:           row.notes || "",         // NEW
+          created_at:      row.inquiry_date || "",
         }))
         setInquiries(mapped)
       } else {
@@ -169,13 +191,11 @@ export function InquiryStudentsContent() {
 
   useEffect(() => { fetchInquiries() }, [fetchInquiries])
 
-  // Open: mount DOM first, then trigger slide-in on next frame
   const openDrawer = () => {
     setDrawerMounted(true)
     requestAnimationFrame(() => setDrawerOpen(true))
   }
 
-  // Close: trigger slide-out, then unmount after animation
   const closeDrawer = () => {
     setDrawerOpen(false)
     setTimeout(() => {
@@ -203,7 +223,7 @@ export function InquiryStudentsContent() {
       const data: any = await inquiryExtraApi.create(payload)
       if (data.success) {
         setFormSuccess("Inquiry added successfully!")
-        setFormData(EMPTY_FORM) 
+        setFormData(EMPTY_FORM)
         await fetchInquiries()
         setTimeout(() => closeDrawer(), 1200)
       } else {
@@ -216,112 +236,75 @@ export function InquiryStudentsContent() {
     }
   }
 
+  // ── Quick status update inline ──
+  const handleStatusChange = async (id: number, newStatus: string) => {
+    // Optimistic update
+    setInquiries(prev => prev.map(i => i.id === id ? { ...i, status: newStatus } : i))
+    try {
+      await inquiryExtraApi.update(id, { status: newStatus })
+    } catch {
+      fetchInquiries() // revert on failure
+    }
+  }
+
   const filtered = inquiries.filter(i => {
     const q = search.toLowerCase()
     const matchSearch =
       i.studentName?.toLowerCase().includes(q) ||
       i.studentContact?.includes(q) ||
       i.email?.toLowerCase().includes(q) ||
-      i.standard?.toLowerCase().includes(q)
-    const matchSex   = filterSex   ? i.sex === filterSex     : true
-    const matchBatch = filterBatch ? i.batch === filterBatch : true
-    return matchSearch && matchSex && matchBatch
+      i.standard?.toLowerCase().includes(q) ||
+      i.branch?.toLowerCase().includes(q)
+    const matchSex    = filterSex    ? i.sex === filterSex       : true
+    const matchBatch  = filterBatch  ? i.batch === filterBatch   : true
+    const matchStatus = filterStatus ? i.status === filterStatus : true
+    return matchSearch && matchSex && matchBatch && matchStatus
   })
 
-    const handleExportExcel = () => {
-    if (!filtered.length) {
-      alert("No inquiries to export")
-      return
-    }
-
+  const handleExportExcel = () => {
+    if (!filtered.length) { alert("No inquiries to export"); return }
     const headers = [
-      "ID",
-      "Student Name",
-      "Gender",
-      "Student Contact",
-      "Parent Contact",
-      "Email",
-      "Standard",
-      "Batch",
-      "Reference",
-      "Hostel Required",
-      "Taking Coaching",
-      "Date",
+      "ID","Student Name","Gender","Student Contact","Parent Contact","Email",
+      "Standard","Batch","Branch","Address","Reference","Status",
+      "Feedback 1","Feedback 2","Notes","Hostel Required","Taking Coaching","Date",
     ]
-
-    const rows = filtered.map((inq) => [
-      inq.id,
-      inq.studentName || "",
-      inq.sex || "",
-      inq.studentContact || "",
-      inq.parentContact || "",
-      inq.email || "",
-      inq.standard || "",
-      inq.batch || "",
-      inq.reference || "",
-      inq.hostelRequired || "",
-      inq.takingCoaching || "",
+    const rows = filtered.map(inq => [
+      inq.id, inq.studentName, inq.sex, inq.studentContact, inq.parentContact,
+      inq.email, inq.standard, inq.batch, inq.branch, inq.address,
+      inq.reference, inq.status, inq.feedback1, inq.feedback2, inq.notes,
+      inq.hostelRequired, inq.takingCoaching,
       inq.created_at ? new Date(inq.created_at).toLocaleDateString("en-CA") : "",
     ])
-
-    const esc = (value: string | number) => `"${String(value).replace(/"/g, "\"\"")}"`
-    const csv = [headers, ...rows].map((row) => row.map(esc).join(",")).join("\n")
+    const esc = (v: string | number) => `"${String(v).replace(/"/g, "\"\"")}"`
+    const csv = [headers, ...rows].map(r => r.map(esc).join(",")).join("\n")
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
-    a.href = url
-    a.download = `inquiry_students_${new Date().toISOString().slice(0, 10)}.csv`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+    a.href = url; a.download = `inquiry_students_${new Date().toISOString().slice(0,10)}.csv`
+    document.body.appendChild(a); a.click()
+    document.body.removeChild(a); URL.revokeObjectURL(url)
   }
-
 
   const statCards = [
     {
-      label: "Total Inquiries",
-      value: inquiries.length,
+      label: "Total Inquiries", value: inquiries.length,
       bg: "bg-[#2563EB]",
-      icon: (
-        <svg className="w-6 h-6 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-      ),
+      icon: <svg className="w-6 h-6 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
     },
     {
-      label: "Hostel Required",
-      value: inquiries.filter(i => i.hostelRequired === "Yes").length,
+      label: "Confirmed", value: inquiries.filter(i => i.status === "Confirmed").length,
       bg: "bg-[#16A34A]",
-      icon: (
-        <svg className="w-6 h-6 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-        </svg>
-      ),
+      icon: <svg className="w-6 h-6 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
     },
     {
-      label: "Taking Coaching",
-      value: inquiries.filter(i => i.takingCoaching === "Yes").length,
+      label: "Pending", value: inquiries.filter(i => i.status === "Pending").length,
       bg: "bg-[#EA580C]",
-      icon: (
-        <svg className="w-6 h-6 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-        </svg>
-      ),
+      icon: <svg className="w-6 h-6 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
     },
     {
-      label: "Online Batch",
-      value: inquiries.filter(i => i.batch === "Online").length,
-      bg: "bg-[#2563EB]",
-      icon: (
-        <svg className="w-6 h-6 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-            d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-        </svg>
-      ),
+      label: "Maybe", value: inquiries.filter(i => i.status === "Maybe").length,
+      bg: "bg-[#7C3AED]",
+      icon: <svg className="w-6 h-6 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
     },
   ]
 
@@ -337,31 +320,23 @@ export function InquiryStudentsContent() {
             <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Inquiry Students</h1>
             <p className="text-gray-500 text-sm mt-0.5">All student inquiries submitted via the public form</p>
           </div>
-          <div className="flex items-center gap-2 self-start sm:self-auto">
-            {/* ADD INQUIRY — opens drawer */}
-            <button
-              onClick={openDrawer}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-sm font-semibold transition-colors shadow-sm"
-            >
+          <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+            <button onClick={openDrawer}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-sm font-semibold transition-colors shadow-sm">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
               Add Inquiry
             </button>
-            <button
-              onClick={fetchInquiries}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#16A34A] hover:bg-[#15803D] text-white text-sm font-semibold transition-colors"
-            >
+            <button onClick={fetchInquiries}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#16A34A] hover:bg-[#15803D] text-white text-sm font-semibold transition-colors">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
               Refresh
             </button>
-             <button
-              onClick={handleExportExcel}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-sm font-semibold transition-colors"
-            >
+            <button onClick={handleExportExcel}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-sm font-semibold transition-colors">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v1a3 3 0 003 3h10a3 3 0 003-3v-1" />
               </svg>
@@ -384,18 +359,14 @@ export function InquiryStudentsContent() {
         </div>
 
         {/* ── Filters ── */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
+        <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
+          <div className="relative flex-1 min-w-[200px]">
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-            <input
-              type="text"
-              placeholder="Search by name, phone, email, standard..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-800 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB] transition-all"
-            />
+            <input type="text" placeholder="Search by name, phone, email, branch..."
+              value={search} onChange={e => setSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-800 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB] transition-all" />
           </div>
           <select value={filterSex} onChange={e => setFilterSex(e.target.value)}
             className="px-3 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB] transition-all cursor-pointer">
@@ -409,6 +380,14 @@ export function InquiryStudentsContent() {
             <option value="">All Batches</option>
             <option value="Online">Online</option>
             <option value="Offline">Offline</option>
+          </select>
+          {/* NEW: Status filter */}
+          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+            className="px-3 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB] transition-all cursor-pointer">
+            <option value="">All Statuses</option>
+            <option value="Confirmed">Confirmed</option>
+            <option value="Pending">Pending</option>
+            <option value="Maybe">Maybe</option>
           </select>
         </div>
 
@@ -442,21 +421,25 @@ export function InquiryStudentsContent() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gray-900">
-                    <th className="text-left px-4 py-3 text-white font-semibold text-xs">Sr no.</th>
-                    <th className="text-left px-4 py-3 text-white font-semibold text-xs">Student</th>
-                    <th className="text-left px-4 py-3 text-white font-semibold text-xs">Contact</th>
-                    <th className="text-left px-4 py-3 text-white font-semibold text-xs">Standard</th>
-                    <th className="text-left px-4 py-3 text-white font-semibold text-xs">Batch</th>
-                    <th className="text-left px-4 py-3 text-white font-semibold text-xs">Reference</th>
-                    <th className="text-left px-4 py-3 text-white font-semibold text-xs">Hostel</th>
-                    <th className="text-left px-4 py-3 text-white font-semibold text-xs">Date</th>
-                    <th className="text-left px-4 py-3 text-white font-semibold text-xs">Action</th>
+                    <th className="text-left px-4 py-3 text-white font-semibold text-xs whitespace-nowrap">Sr no.</th>
+                    <th className="text-left px-4 py-3 text-white font-semibold text-xs whitespace-nowrap">Student</th>
+                    <th className="text-left px-4 py-3 text-white font-semibold text-xs whitespace-nowrap">Contact</th>
+                    <th className="text-left px-4 py-3 text-white font-semibold text-xs whitespace-nowrap">Standard</th>
+                    <th className="text-left px-4 py-3 text-white font-semibold text-xs whitespace-nowrap">Batch</th>
+                    <th className="text-left px-4 py-3 text-white font-semibold text-xs whitespace-nowrap">Branch & Address</th>{/* NEW */}
+                    <th className="text-left px-4 py-3 text-white font-semibold text-xs whitespace-nowrap">Reference</th>
+                    <th className="text-left px-4 py-3 text-white font-semibold text-xs whitespace-nowrap">Status</th>{/* NEW */}
+                    <th className="text-left px-4 py-3 text-white font-semibold text-xs whitespace-nowrap">Feedback 1</th>{/* NEW */}
+                    <th className="text-left px-4 py-3 text-white font-semibold text-xs whitespace-nowrap">Feedback 2</th>{/* NEW */}
+                    <th className="text-left px-4 py-3 text-white font-semibold text-xs whitespace-nowrap">Notes</th>{/* NEW */}
+                    <th className="text-left px-4 py-3 text-white font-semibold text-xs whitespace-nowrap">Inquiry Date</th>{/* renamed */}
+                    <th className="text-left px-4 py-3 text-white font-semibold text-xs whitespace-nowrap">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="text-center py-16 text-gray-400">
+                      <td colSpan={13} className="text-center py-16 text-gray-400">
                         <svg className="w-10 h-10 mx-auto mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                             d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -468,6 +451,8 @@ export function InquiryStudentsContent() {
                     filtered.map((inq, idx) => (
                       <tr key={inq.id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-4 py-3 text-gray-400 text-xs font-medium">{idx + 1}</td>
+
+                        {/* Student */}
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2.5">
                             <div className="w-8 h-8 rounded-full bg-[#2563EB] flex items-center justify-center shrink-0">
@@ -476,22 +461,28 @@ export function InquiryStudentsContent() {
                               </span>
                             </div>
                             <div>
-                              <p className="text-gray-900 font-semibold text-sm leading-tight">{inq.studentName || "—"}</p>
+                              <p className="text-gray-900 font-semibold text-sm leading-tight whitespace-nowrap">{inq.studentName || "—"}</p>
                               <p className="text-gray-400 text-xs">{inq.sex || "—"}</p>
                             </div>
                           </div>
                         </td>
+
+                        {/* Contact */}
                         <td className="px-4 py-3">
-                          <p className="text-gray-700 text-xs font-medium">{inq.studentContact || "—"}</p>
+                          <p className="text-gray-700 text-xs font-medium whitespace-nowrap">{inq.studentContact || "—"}</p>
                           <p className="text-gray-400 text-xs">{inq.email || "—"}</p>
                         </td>
+
+                        {/* Standard */}
                         <td className="px-4 py-3">
-                          <span className="px-2 py-1 rounded-md bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold">
+                          <span className="px-2 py-1 rounded-md bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold whitespace-nowrap">
                             {inq.standard || "—"}
                           </span>
                         </td>
+
+                        {/* Batch */}
                         <td className="px-4 py-3">
-                          <span className={`px-2 py-1 rounded-md border text-xs font-semibold ${
+                          <span className={`px-2 py-1 rounded-md border text-xs font-semibold whitespace-nowrap ${
                             inq.batch === "Online"
                               ? "bg-green-50 border-green-200 text-green-700"
                               : "bg-gray-50 border-gray-200 text-gray-600"
@@ -499,30 +490,74 @@ export function InquiryStudentsContent() {
                             {inq.batch || "—"}
                           </span>
                         </td>
+
+                        {/* Branch & Address — NEW */}
+                        <td className="px-4 py-3 max-w-[160px]">
+                          {inq.branch && (
+                            <span className="px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-semibold block w-fit mb-1">
+                              {inq.branch}
+                            </span>
+                          )}
+                          <p className="text-gray-500 text-xs leading-snug truncate" title={inq.address}>
+                            {inq.address || "—"}
+                          </p>
+                        </td>
+
+                        {/* Reference */}
                         <td className="px-4 py-3">
-                          <span className={`px-2 py-1 rounded-md border text-xs font-semibold ${BADGE[inq.reference] || "bg-gray-50 text-gray-600 border-gray-200"}`}>
+                          <span className={`px-2 py-1 rounded-md border text-xs font-semibold whitespace-nowrap ${REF_BADGE[inq.reference] || "bg-gray-50 text-gray-600 border-gray-200"}`}>
                             {inq.reference || "—"}
                           </span>
                         </td>
+
+                        {/* Status — NEW (inline dropdown) */}
                         <td className="px-4 py-3">
-                          <span className={`px-2 py-1 rounded-md border text-xs font-semibold ${
-                            inq.hostelRequired === "Yes"
-                              ? "bg-orange-50 border-orange-200 text-orange-700"
-                              : "bg-gray-50 border-gray-200 text-gray-500"
-                          }`}>
-                            {inq.hostelRequired || "—"}
-                          </span>
+                          <div className="relative inline-flex items-center gap-1.5">
+                            <span className={`w-2 h-2 rounded-full shrink-0 ${STATUS_DOT[inq.status] || "bg-gray-300"}`} />
+                            <select
+                              value={inq.status}
+                              onChange={e => handleStatusChange(inq.id, e.target.value)}
+                              className={`pl-1 pr-6 py-1 rounded-md border text-xs font-semibold cursor-pointer appearance-none focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 transition-all ${STATUS_STYLES[inq.status] || "bg-gray-50 border-gray-200 text-gray-600"}`}
+                            >
+                              <option value="Confirmed">Confirmed</option>
+                              <option value="Pending">Pending</option>
+                              <option value="Maybe">Maybe</option>
+                            </select>
+                          </div>
                         </td>
+
+                        {/* Feedback 1 — NEW */}
+                        <td className="px-4 py-3 max-w-[130px]">
+                          <p className="text-gray-600 text-xs truncate" title={inq.feedback1}>
+                            {inq.feedback1 || <span className="text-gray-300 italic">—</span>}
+                          </p>
+                        </td>
+
+                        {/* Feedback 2 — NEW */}
+                        <td className="px-4 py-3 max-w-[130px]">
+                          <p className="text-gray-600 text-xs truncate" title={inq.feedback2}>
+                            {inq.feedback2 || <span className="text-gray-300 italic">—</span>}
+                          </p>
+                        </td>
+
+                        {/* Notes — NEW */}
+                        <td className="px-4 py-3 max-w-[140px]">
+                          <p className="text-gray-500 text-xs truncate leading-snug" title={inq.notes}>
+                            {inq.notes || <span className="text-gray-300 italic">—</span>}
+                          </p>
+                        </td>
+
+                        {/* Inquiry Date — renamed from Date */}
                         <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">
                           {inq.created_at
                             ? new Date(inq.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
                             : "—"}
                         </td>
+
+                        {/* Action */}
                         <td className="px-4 py-3">
-                          <button
-                            onClick={() => setSelected(inq)}
-                            className="px-3 py-1.5 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold transition-colors"
-                          >
+                          <button onClick={() => setSelected(inq)}
+                            className="px-3 py-1.5 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold transition-colors whitespace-nowrap">
                             View
                           </button>
                         </td>
@@ -541,22 +576,15 @@ export function InquiryStudentsContent() {
         )}
       </div>
 
-      {/* ══════════════════════════════════════════════════
+      {/* ══════════════════════════════════════════════
           SLIDE-IN DRAWER — Add Inquiry
-      ══════════════════════════════════════════════════ */}
+      ══════════════════════════════════════════════ */}
       {drawerMounted && (
         <>
-          {/* Dimmed backdrop — click to close */}
-          <div
-            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm fade-in-bg"
-            onClick={closeDrawer}
-          />
+          <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm fade-in-bg" onClick={closeDrawer} />
+          <div className={`fixed top-0 right-0 z-50 h-screen w-full max-w-[500px] bg-white shadow-2xl flex flex-col ${drawerOpen ? "drawer-in" : "drawer-out"}`}>
 
-          {/* Drawer panel */}
-          <div
-            className={`fixed top-0 right-0 z-50 h-screen w-full max-w-[480px] bg-white shadow-2xl flex flex-col ${drawerOpen ? "drawer-in" : "drawer-out"}`}
-          >
-            {/* ── Drawer Header ── */}
+            {/* Header */}
             <div className="shrink-0 flex items-center justify-between px-6 py-5 bg-gray-900">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-[#2563EB] flex items-center justify-center">
@@ -569,28 +597,22 @@ export function InquiryStudentsContent() {
                   <p className="text-gray-400 text-xs">Fill in the student details below</p>
                 </div>
               </div>
-              <button
-                onClick={closeDrawer}
-                className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-gray-300 hover:text-white transition-all"
-              >
+              <button onClick={closeDrawer}
+                className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-gray-300 hover:text-white transition-all">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
-            {/* Thin progress bar under header */}
+            {/* Progress bar */}
             <div className="shrink-0 h-1 bg-gray-100">
-              <div
-                className="h-full bg-[#2563EB] transition-all duration-500"
-                style={{ width: formLoading ? "75%" : formSuccess ? "100%" : "0%" }}
-              />
+              <div className="h-full bg-[#2563EB] transition-all duration-500"
+                style={{ width: formLoading ? "75%" : formSuccess ? "100%" : "0%" }} />
             </div>
 
-            {/* ── Scrollable Form Body ── */}
+            {/* Scrollable body */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
-
-              {/* Status banners */}
               {formSuccess && (
                 <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm">
                   <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -608,7 +630,7 @@ export function InquiryStudentsContent() {
                 </div>
               )}
 
-              {/* Section: Basic Details */}
+              {/* Basic Details */}
               <FormSection title="Basic Details" color="blue">
                 <div className="grid grid-cols-2 gap-3">
                   <FormField label="Student Name *" className="col-span-2">
@@ -642,6 +664,16 @@ export function InquiryStudentsContent() {
                     <input name="email" type="email" value={formData.email} onChange={handleFormChange}
                       placeholder="student@email.com" className={inputCls} />
                   </FormField>
+                  {/* NEW: Branch */}
+                  <FormField label="Branch">
+                    <select name="branch" value={formData.branch} onChange={handleFormChange} className={inputCls}>
+                      <option value="">Select Branch</option>
+                      <option value="Main Branch">Main Branch</option>
+                      <option value="Branch A">Branch A</option>
+                      <option value="Branch B">Branch B</option>
+                      <option value="Online">Online</option>
+                    </select>
+                  </FormField>
                   <FormField label="Address" className="col-span-2">
                     <textarea name="address" value={formData.address} onChange={handleFormChange}
                       placeholder="Full address" rows={2} className={`${inputCls} resize-none`} />
@@ -649,7 +681,7 @@ export function InquiryStudentsContent() {
                 </div>
               </FormSection>
 
-              {/* Section: Academic Details */}
+              {/* Academic Details */}
               <FormSection title="Academic Details" color="green">
                 <div className="grid grid-cols-2 gap-3">
                   <FormField label="Standard *">
@@ -686,7 +718,7 @@ export function InquiryStudentsContent() {
                 </div>
               </FormSection>
 
-              {/* Section: Family & Other Info */}
+              {/* Family & Other Info */}
               <FormSection title="Family & Other Info" color="orange">
                 <div className="grid grid-cols-2 gap-3">
                   <FormField label="Father's Occupation">
@@ -725,26 +757,46 @@ export function InquiryStudentsContent() {
                   </FormField>
                 </div>
               </FormSection>
+
+              {/* NEW: Follow-up & Feedback */}
+              <FormSection title="Follow-up & Feedback" color="purple">
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField label="Status">
+                    <select name="status" value={formData.status} onChange={handleFormChange} className={inputCls}>
+                      <option value="Pending">Pending</option>
+                      <option value="Confirmed">Confirmed</option>
+                      <option value="Maybe">Maybe</option>
+                    </select>
+                  </FormField>
+                  <FormField label="Feedback 1">
+                    <input name="feedback1" value={formData.feedback1} onChange={handleFormChange}
+                      placeholder="First call feedback" className={inputCls} />
+                  </FormField>
+                  <FormField label="Feedback 2">
+                    <input name="feedback2" value={formData.feedback2} onChange={handleFormChange}
+                      placeholder="Second call feedback" className={inputCls} />
+                  </FormField>
+                  <FormField label="Notes" className="col-span-2">
+                    <textarea name="notes" value={formData.notes} onChange={handleFormChange}
+                      placeholder="Additional notes about this inquiry..." rows={3}
+                      className={`${inputCls} resize-none`} />
+                  </FormField>
+                </div>
+              </FormSection>
             </div>
 
-            {/* ── Drawer Footer — pinned ── */}
+            {/* Footer */}
             <div className="shrink-0 px-6 py-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between gap-3">
               <p className="text-gray-400 text-xs">
                 <span className="text-red-400 font-bold">*</span> Required fields
               </p>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={closeDrawer}
-                  disabled={formLoading}
-                  className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50"
-                >
+                <button onClick={closeDrawer} disabled={formLoading}
+                  className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50">
                   Cancel
                 </button>
-                <button
-                  onClick={handleAddSubmit}
-                  disabled={formLoading}
-                  className="flex items-center gap-2 px-5 py-2 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-sm font-semibold transition-colors disabled:opacity-60"
-                >
+                <button onClick={handleAddSubmit} disabled={formLoading}
+                  className="flex items-center gap-2 px-5 py-2 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-sm font-semibold transition-colors disabled:opacity-60">
                   {formLoading ? (
                     <>
                       <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -768,16 +820,12 @@ export function InquiryStudentsContent() {
         </>
       )}
 
-      {/* ── VIEW Detail Modal (unchanged) ── */}
+      {/* ── View Detail Modal ── */}
       {selected && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-          onClick={() => setSelected(null)}
-        >
-          <div
-            className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white border border-gray-200 rounded-2xl shadow-2xl"
-            onClick={e => e.stopPropagation()}
-          >
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+          onClick={() => setSelected(null)}>
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white border border-gray-200 rounded-2xl shadow-2xl"
+            onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 bg-gray-900 rounded-t-2xl">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-[#2563EB] flex items-center justify-center">
@@ -785,15 +833,22 @@ export function InquiryStudentsContent() {
                 </div>
                 <div>
                   <h3 className="text-white font-bold text-lg leading-tight">{selected.studentName}</h3>
-                  <p className="text-gray-400 text-xs">{selected.standard} · {selected.batch}</p>
+                  <p className="text-gray-400 text-xs">{selected.standard} · {selected.batch} · {selected.branch}</p>
                 </div>
               </div>
-              <button onClick={() => setSelected(null)}
-                className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-gray-300 hover:text-white transition-all">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <div className="flex items-center gap-3">
+                {/* Status pill in modal header */}
+                <span className={`px-3 py-1 rounded-full border text-xs font-bold flex items-center gap-1.5 ${STATUS_STYLES[selected.status] || "bg-gray-50 border-gray-200 text-gray-600"}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[selected.status] || "bg-gray-400"}`} />
+                  {selected.status}
+                </span>
+                <button onClick={() => setSelected(null)}
+                  className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-gray-300 hover:text-white transition-all">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
             <div className="p-6 space-y-5">
               <InfoGroup title="Basic Details" color="blue">
@@ -803,6 +858,7 @@ export function InquiryStudentsContent() {
                 <InfoRow label="Student Contact" value={selected.studentContact} />
                 <InfoRow label="Parent Contact"  value={selected.parentContact} />
                 <InfoRow label="Email"           value={selected.email || "—"} />
+                <InfoRow label="Branch"          value={selected.branch || "—"} />   {/* NEW */}
               </InfoGroup>
               <InfoGroup title="Academic Details" color="green">
                 <InfoRow label="Standard"        value={selected.standard} />
@@ -818,11 +874,17 @@ export function InquiryStudentsContent() {
                 <InfoRow label="Address"             value={selected.address} />
                 <InfoRow label="Sibling Name"        value={selected.siblingName || "—"} />
               </InfoGroup>
+              <InfoGroup title="Follow-up & Feedback" color="purple">   {/* NEW group */}
+                <InfoRow label="Status"     value={selected.status || "—"} />
+                <InfoRow label="Feedback 1" value={selected.feedback1 || "—"} />
+                <InfoRow label="Feedback 2" value={selected.feedback2 || "—"} />
+                <InfoRow label="Notes"      value={selected.notes || "—"} />
+              </InfoGroup>
               <InfoGroup title="Other Info" color="dark">
                 <InfoRow label="Reference"       value={selected.reference || "—"} />
                 <InfoRow label="Taking Coaching" value={selected.takingCoaching || "—"} />
                 <InfoRow label="Hostel Required" value={selected.hostelRequired || "—"} />
-                <InfoRow label="Submitted On"    value={
+                <InfoRow label="Inquiry Date"    value={
                   selected.created_at
                     ? new Date(selected.created_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })
                     : "—"
@@ -847,6 +909,7 @@ function FormSection({ title, color, children }: {
     blue:   "bg-[#2563EB] text-white",
     green:  "bg-[#16A34A] text-white",
     orange: "bg-[#EA580C] text-white",
+    purple: "bg-[#7C3AED] text-white",   // NEW
   }
   return (
     <div className="space-y-3">
@@ -876,6 +939,7 @@ function InfoGroup({ title, color, children }: {
     blue:   "bg-[#2563EB] text-white",
     green:  "bg-[#16A34A] text-white",
     orange: "bg-[#EA580C] text-white",
+    purple: "bg-[#7C3AED] text-white",   // NEW
     dark:   "bg-gray-900 text-white",
   }
   return (
