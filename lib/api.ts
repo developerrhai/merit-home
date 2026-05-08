@@ -150,17 +150,14 @@ export const inquiriesApi = {
 ══════════════════════════════════════════════════════════ */
 export const inquiryExtraApi = {
   getAll: () => get("/inquiry-extra"),
-
-  // create: async (payload: object) => {
-  //   const res = await fetch("/api/inquiry-extra", {
-  //     method: "POST",
-  //     headers: { "Content-Type": "application/json" },
-  //     body: JSON.stringify(payload),
-  //   });
-  //   return res.json();
-  // },
-   create: (payload: Record<string, unknown>) => post("/inquiry-extra", payload),
+ 
+  create: (payload: Record<string, unknown>) => post("/inquiry-extra", payload),
+ 
+  // ✅ AFTER — use `put` like every other API in your file
+update: (id: number, payload: Record<string, unknown>) =>
+  put(`/inquiry-extra/${id}`, payload),
 };
+ 
 
 /* ══════════════════════════════════════════════════════════
    APPOINTMENTS
