@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND = "http://institute-api.rhaitech.online/api";
+const BACKEND = "https://institute-api.rhaitech.online/api";
 
 export async function POST(request: NextRequest) {
   try {
