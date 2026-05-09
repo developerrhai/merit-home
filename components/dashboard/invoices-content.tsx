@@ -468,11 +468,13 @@ const handlePrint = async (inv: Invoice) => {
 
       <div class="title">Tax Invoice</div>
 
-      <div class="top-section">
+ <div class="top-section">
         <div class="bill-to">
           <h3>Bill To</h3>
           <p><b>${inv.student_name}</b></p>
           <p>Contact No. : ${studentPhone || "-"}</p>
+          <p>Student ID : ${inv.student_id || "-"}</p>
+          <p>Standard : ${standard || "-"}</p>
         </div>
         <div class="invoice-details">
           <h3>Invoice Details</h3>
@@ -483,14 +485,13 @@ const handlePrint = async (inv: Invoice) => {
 
       <table>
         <tr>
-          <th>#</th><th>Course Name</th><th>Standard</th><th>Student ID</th><th>Due Date</th><th>Transaction Type</th><th>Amount</th>
+          <th>#</th><th>Course Name</th><th>Due Date</th><th>Paid Date</th><th>Transaction Type</th><th>Amount</th>
         </tr>
         <tr>
           <td>1</td>
           <td>${inv.description || inv.course || "Course Fees"}</td>
-          <td>${standard || "-"}</td>
-          <td>${inv.student_id || "-"}</td>
           <td>${fmtDate(inv.due_date)}</td>
+          <td>${fmtDate(inv.install_date)}</td>
           <td>${inv.transaction_type || "Online"}</td>
           <td>₹ ${Number(inv.amount).toLocaleString()}</td>
         </tr>
