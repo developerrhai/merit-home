@@ -390,15 +390,19 @@ export function InvoicesContent() {
    //<p>201/A, New Excelsior Building Opp. Crown Hotel, KHADKI Pune - 411003</p>
      //       <p>GSTIN: 27AAUCM5976C1ZV</p>
 
- const handlePrint = async (inv: Invoice) => {
-  // Fetch student phone if not on the invoice
+const handlePrint = async (inv: Invoice) => {
   let studentPhone = inv.student_phone || ""
+  let standard     = inv.standard      || ""
 
-  if (!studentPhone && inv.student_id) {
+  // Fetch from students table if either is missing
+  if ((!studentPhone || !standard) && inv.student_id) {
     try {
       const res: any = await studentsApi.getAll({ search: inv.student_name })
       const match = (res.data || []).find((s: Student) => String(s.id) === String(inv.student_id))
-      if (match) studentPhone = match.phone || ""
+      if (match) {
+        if (!studentPhone) studentPhone = match.phone    || ""
+        if (!standard)     standard     = match.standard || ""
+      }
     } catch { /* fallback */ }
   }
 
@@ -477,14 +481,14 @@ export function InvoicesContent() {
         </div>
       </div>
 
-    <table>
+      <table>
         <tr>
           <th>#</th><th>Course Name</th><th>Standard</th><th>Student ID</th><th>Due Date</th><th>Transaction Type</th><th>Amount</th>
         </tr>
         <tr>
           <td>1</td>
           <td>${inv.description || inv.course || "Course Fees"}</td>
-          <td>${inv.standard || "-"}</td>
+          <td>${standard || "-"}</td>
           <td>${inv.student_id || "-"}</td>
           <td>${fmtDate(inv.due_date)}</td>
           <td>${inv.transaction_type || "Online"}</td>
