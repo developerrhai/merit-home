@@ -480,7 +480,7 @@ export function InvoicesContent() {
         </div>
         <div class="footer">
           <p>AUTHORISED SIGNATORY</p>
-          <p><b>MIRIT CLASSESS</b></p> 
+          <p><b>MIRIT HOME CLASSESS</b></p> 
         </div>
       </div>
     </body>
