@@ -16,16 +16,21 @@ import * as XLSX from "xlsx"
 interface Student {
   id: number; name: string; phone: string; father_name: string; father_phone: string
   board: string; standard: string; course: string; location: string; fee: number; paid_fee: number
+  subjects: string[]
 }
+
+// ── Subject constants ──────────────────────────────────
+const SUBJECTS_JUNIOR = ["English", "Math", "Science", "SST", "All Subjects"]
+const SUBJECTS_SENIOR = ["English", "Math", "Physics", "Biology", "Chemistry", "All Subjects"]
 
 // Fee status badge helper
 const feeStatus = (s: Student) => {
-  const fee    = Number(s.fee)
-  const paid   = Number(s.paid_fee)
-  if (fee === 0)       return { label: "No Fee",  cls: "bg-gray-100 text-gray-500" }
-  if (paid >= fee)     return { label: "Paid",     cls: "bg-emerald-100 text-emerald-700" }
-  if (paid > 0)        return { label: "Partial",  cls: "bg-yellow-100 text-yellow-700" }
-  return               { label: "Pending",  cls: "bg-red-100 text-red-700" }
+  const fee  = Number(s.fee)
+  const paid = Number(s.paid_fee)
+  if (fee === 0)   return { label: "No Fee",  cls: "bg-gray-100 text-gray-500" }
+  if (paid >= fee) return { label: "Paid",     cls: "bg-emerald-100 text-emerald-700" }
+  if (paid > 0)    return { label: "Partial",  cls: "bg-yellow-100 text-yellow-700" }
+  return             { label: "Pending",  cls: "bg-red-100 text-red-700" }
 }
 
 export function StudentsContent() {
@@ -43,18 +48,19 @@ export function StudentsContent() {
   const [viewOpen,  setViewOpen]  = useState(false)
 
   // Update Fee modal
-  const [feeStudent,    setFeeStudent]    = useState<Student | null>(null)
-  const [feeModalOpen,  setFeeModalOpen]  = useState(false)
-  const [newFee,        setNewFee]        = useState("")
-  const [feeSaving,     setFeeSaving]     = useState(false)
+  const [feeStudent,   setFeeStudent]   = useState<Student | null>(null)
+  const [feeModalOpen, setFeeModalOpen] = useState(false)
+  const [newFee,       setNewFee]       = useState("")
+  const [feeSaving,    setFeeSaving]    = useState(false)
 
   // Pay Fee modal
-  const [payStudent,    setPayStudent]    = useState<Student | null>(null)
-  const [payModalOpen,  setPayModalOpen]  = useState(false)
-  const [payAmount,     setPayAmount]     = useState("")
-  const [payMode,       setPayMode]       = useState<"add" | "set">("add")
-  const [paySaving,     setPaySaving]     = useState(false)
+  const [payStudent,   setPayStudent]   = useState<Student | null>(null)
+  const [payModalOpen, setPayModalOpen] = useState(false)
+  const [payAmount,    setPayAmount]    = useState("")
+  const [payMode,      setPayMode]      = useState<"add" | "set">("add")
+  const [paySaving,    setPaySaving]    = useState(false)
 
+  // ── Load ───────────────────────────────────────────────
   const load = useCallback(async () => {
     setLoading(true)
     try {
@@ -64,13 +70,24 @@ export function StudentsContent() {
         location: filterLocation !== "all" ? filterLocation : undefined,
         search:   searchTerm || undefined,
       }
-      // Prefer universal listing. Fallback keeps UI working if universal route is not available yet.
       try {
         const universal: any = await studentsUniversalApi.getAll(filters)
-        setStudents(universal?.data || [])
+        const rows = universal?.data || []
+        setStudents(rows.map((r: any) => ({
+          ...r,
+          subjects: r.subjects
+            ? (Array.isArray(r.subjects) ? r.subjects : String(r.subjects).split(",").filter(Boolean))
+            : [],
+        })))
       } catch {
         const primary: any = await studentsApi.getAll(filters)
-        setStudents(primary?.data || [])
+        const rows = primary?.data || []
+        setStudents(rows.map((r: any) => ({
+          ...r,
+          subjects: r.subjects
+            ? (Array.isArray(r.subjects) ? r.subjects : String(r.subjects).split(",").filter(Boolean))
+            : [],
+        })))
       }
     } catch (err) {
       console.error(err)
@@ -81,7 +98,7 @@ export function StudentsContent() {
 
   useEffect(() => { load() }, [load])
 
-  // ── Delete ──────────────────────────────────────────────
+  // ── Delete ─────────────────────────────────────────────
   const handleDelete = async (id: number) => {
     if (!confirm("Delete this student?")) return
     try {
@@ -90,148 +107,77 @@ export function StudentsContent() {
     } catch (err: any) { alert(err.message) }
   }
 
-  // ── Open Update Fee modal ───────────────────────────────
+  // ── Update Fee ─────────────────────────────────────────
   const openFeeModal = (s: Student) => {
-    setFeeStudent(s)
-    setNewFee(String(Number(s.fee)))
-    setFeeModalOpen(true)
+    setFeeStudent(s); setNewFee(String(Number(s.fee))); setFeeModalOpen(true)
   }
-
-  // ── Save updated fee (changes `fee` column) ─────────────
   const handleUpdateFee = async () => {
     if (!feeStudent) return
     const val = parseFloat(newFee)
     if (isNaN(val) || val < 0) { alert("Enter a valid fee amount"); return }
     setFeeSaving(true)
     try {
-      await studentsApi.update(feeStudent.id, {
-        ...feeStudent,
-        fee: val,
-      })
-      // Reflect change locally without refetch
-      setStudents(prev => prev.map(s =>
-        s.id === feeStudent.id ? { ...s, fee: val } : s
-      ))
+      await studentsApi.update(feeStudent.id, { ...feeStudent, fee: val, subjects: feeStudent.subjects.join(",") })
+      setStudents(prev => prev.map(s => s.id === feeStudent.id ? { ...s, fee: val } : s))
       setFeeModalOpen(false)
     } catch (err: any) { alert(err.message) }
     finally { setFeeSaving(false) }
   }
 
-  // ── Open Pay Fee modal ──────────────────────────────────
+  // ── Pay Fee ────────────────────────────────────────────
   const openPayModal = (s: Student) => {
-    setPayStudent(s)
-    setPayAmount("")
-    setPayMode("add")
-    setPayModalOpen(true)
+    setPayStudent(s); setPayAmount(""); setPayMode("add"); setPayModalOpen(true)
   }
-
-  // ── Save payment (changes `paid_fee` column) ────────────
   const handlePayFee = async () => {
     if (!payStudent) return
     const val = parseFloat(payAmount)
     if (isNaN(val) || val < 0) { alert("Enter a valid amount"); return }
-
-    let newPaid: number
-    if (payMode === "add") {
-      // Add payment on top of existing
-      newPaid = Number(payStudent.paid_fee) + val
-    } else {
-      // Set paid_fee to an exact value
-      newPaid = val
-    }
-
-    // Cap at total fee
+    const newPaid = payMode === "add" ? Number(payStudent.paid_fee) + val : val
     const totalFee = Number(payStudent.fee)
     if (totalFee > 0 && newPaid > totalFee) {
-      alert(`Paid amount (₹${newPaid.toLocaleString()}) cannot exceed total fee (₹${totalFee.toLocaleString()})`)
-      return
+      alert(`Paid amount (₹${newPaid.toLocaleString()}) cannot exceed total fee (₹${totalFee.toLocaleString()})`); return
     }
-
     setPaySaving(true)
     try {
-      await studentsApi.update(payStudent.id, {
-        ...payStudent,
-        paid_fee: newPaid,
-      })
-      setStudents(prev => prev.map(s =>
-        s.id === payStudent.id ? { ...s, paid_fee: newPaid } : s
-      ))
+      await studentsApi.update(payStudent.id, { ...payStudent, paid_fee: newPaid, subjects: payStudent.subjects.join(",") })
+      setStudents(prev => prev.map(s => s.id === payStudent.id ? { ...s, paid_fee: newPaid } : s))
       setPayModalOpen(false)
     } catch (err: any) { alert(err.message) }
     finally { setPaySaving(false) }
   }
 
+  // ── Export ─────────────────────────────────────────────
   const handleExportExcel = () => {
-    if (!students.length) {
-      alert("No students to export")
-      return
-    }
-
-    const headers = [
-      "ID",
-      "Name",
-      "Phone",
-      "Father Name",
-      "Father Phone",
-      "Board",
-      "Standard",
-      "Course",
-      "Location",
-      "Total Fee",
-      "Paid Fee",
-      "Balance",
-      "Fee Status",
-    ]
-
-    const rows = students.map((s) => {
+    if (!students.length) { alert("No students to export"); return }
+    const headers = ["ID","Name","Phone","Father Name","Father Phone","Board","Standard",
+      "Course","Location","Subjects","Total Fee","Paid Fee","Balance","Fee Status"]
+    const rows = students.map(s => {
       const totalFee = Number(s.fee || 0)
-      const paidFee = Number(s.paid_fee || 0)
-      const balance = Math.max(totalFee - paidFee, 0)
-      const status = feeStatus(s).label
-
+      const paidFee  = Number(s.paid_fee || 0)
       return [
-        s.id,
-        s.name || "",
-        s.phone || "",
-        s.father_name || "",
-        s.father_phone || "",
-        s.board || "",
-        s.standard || "",
-        s.course || "",
-        s.location || "",
-        totalFee,
-        paidFee,
-        balance,
-        status,
+        s.id, s.name, s.phone, s.father_name, s.father_phone,
+        s.board, s.standard, s.course, s.location,
+        s.subjects?.join(", ") || "",
+        totalFee, paidFee, Math.max(totalFee - paidFee, 0), feeStatus(s).label,
       ]
     })
-
-    const esc = (value: string | number) => `"${String(value).replace(/"/g, "\"\"")}"`
-    const csv = [headers, ...rows].map((row) => row.map(esc).join(",")).join("\n")
+    const esc = (v: string | number) => `"${String(v).replace(/"/g, "\"\"")}"`
+    const csv  = [headers, ...rows].map(r => r.map(esc).join(",")).join("\n")
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `students_${new Date().toISOString().slice(0, 10)}.csv`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement("a")
+    a.href = url; a.download = `students_${new Date().toISOString().slice(0,10)}.csv`
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url)
   }
 
-  const normalizeHeader = (value: unknown) =>
-    String(value || "")
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_+|_+$/g, "")
+  // ── Import ─────────────────────────────────────────────
+  const normalizeHeader = (v: unknown) =>
+    String(v || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "")
 
   const pickValue = (row: Record<string, unknown>, keys: string[]) => {
     for (const key of keys) {
-      const value = row[key]
-      if (value !== undefined && value !== null && String(value).trim() !== "") {
-        return value
-      }
+      const val = row[key]
+      if (val !== undefined && val !== null && String(val).trim() !== "") return val
     }
     return ""
   }
@@ -239,74 +185,102 @@ export function StudentsContent() {
   const handleImportExcel = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
-
     setImporting(true)
     try {
-      const buffer = await file.arrayBuffer()
+      const buffer   = await file.arrayBuffer()
       const workbook = XLSX.read(buffer, { type: "array" })
-      const sheetName = workbook.SheetNames[0]
-      const sheet = workbook.Sheets[sheetName]
-      const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" })
+      const sheet    = workbook.Sheets[workbook.SheetNames[0]]
+      const rawRows  = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" })
+      if (!rawRows.length) { alert("Excel sheet is empty"); return }
 
-      if (!rawRows.length) {
-        alert("Excel sheet is empty")
-        return
-      }
-
-      const normalizedRows = rawRows.map((row) => {
+      const normalizedRows = rawRows.map(row => {
         const next: Record<string, unknown> = {}
-        Object.entries(row).forEach(([key, value]) => {
-          next[normalizeHeader(key)] = value
-        })
+        Object.entries(row).forEach(([k, v]) => { next[normalizeHeader(k)] = v })
         return next
       })
 
-      const payloads = normalizedRows
-        .map((row) => {
-          const name = String(pickValue(row, ["name", "student_name", "student"])).trim()
-          if (!name) return null
+      const payloads = normalizedRows.map(row => {
+        const name = String(pickValue(row, ["name","student_name","student"])).trim()
+        if (!name) return null
+        return {
+          name,
+          email:        String(pickValue(row, ["email"])).trim(),
+          phone:        String(pickValue(row, ["phone","student_phone","mobile","contact"])).trim(),
+          father_name:  String(pickValue(row, ["father_name","parent_name","guardian_name"])).trim(),
+          father_phone: String(pickValue(row, ["father_phone","parent_phone","guardian_phone"])).trim(),
+          board:        String(pickValue(row, ["board"])).trim(),
+          standard:     String(pickValue(row, ["standard","std","class"])).trim(),
+          course:       String(pickValue(row, ["course","batch"])).trim(),
+          location:     String(pickValue(row, ["location","branch"])).trim(),
+          institute:    String(pickValue(row, ["institute","school","college"])).trim(),
+          subjects:     String(pickValue(row, ["subjects","subject"])).trim(),
+          fee:          Number(pickValue(row, ["fee","total_fee"])) || 0,
+          paid_fee:     Number(pickValue(row, ["paid_fee","paid","paidamount"])) || 0,
+        }
+      }).filter(Boolean) as Array<Record<string, unknown>>
 
-          return {
-            name,
-            email: String(pickValue(row, ["email"])).trim(),
-            phone: String(pickValue(row, ["phone", "student_phone", "mobile", "contact"])).trim(),
-            father_name: String(pickValue(row, ["father_name", "parent_name", "guardian_name"])).trim(),
-            father_phone: String(pickValue(row, ["father_phone", "parent_phone", "guardian_phone"])).trim(),
-            board: String(pickValue(row, ["board"])).trim(),
-            standard: String(pickValue(row, ["standard", "std", "class"])).trim(),
-            course: String(pickValue(row, ["course", "batch"])).trim(),
-            location: String(pickValue(row, ["location", "branch"])).trim(),
-            institute: String(pickValue(row, ["institute", "school", "college"])).trim(),
-            fee: Number(pickValue(row, ["fee", "total_fee"])) || 0,
-            paid_fee: Number(pickValue(row, ["paid_fee", "paid", "paidamount"])) || 0,
-          }
-        })
-        .filter(Boolean) as Array<Record<string, unknown>>
+      if (!payloads.length) { alert("No valid student rows found. Add at least a Name column."); return }
 
-      if (!payloads.length) {
-        alert("No valid student rows found. Add at least a Name column in the Excel sheet.")
-        return
-      }
-
-      const results = await Promise.allSettled(payloads.map((payload) => studentsApi.create(payload)))
-      const successCount = results.filter((result) => result.status === "fulfilled").length
-      const failedCount = results.length - successCount
-
+      const results = await Promise.allSettled(payloads.map(p => studentsApi.create(p)))
+      const ok  = results.filter(r => r.status === "fulfilled").length
+      const bad = results.length - ok
       await load()
-
-      if (failedCount > 0) {
-        alert(`${successCount} students imported successfully. ${failedCount} rows failed.`)
-      } else {
-        alert(`${successCount} students imported successfully.`)
-      }
+      alert(bad > 0 ? `${ok} imported, ${bad} failed.` : `${ok} students imported successfully.`)
     } catch (err: any) {
       alert(err.message || "Failed to import Excel file")
     } finally {
-      setImporting(false)
-      event.target.value = ""
+      setImporting(false); event.target.value = ""
     }
   }
 
+  // ── Subject toggle (used in view modal edit — inline state) ──
+  // We keep a local edit state only for subjects inside the view modal
+  const [editSubjects,    setEditSubjects]    = useState<string[]>([])
+  const [subjectSaving,   setSubjectSaving]   = useState(false)
+  const [subjectEditOpen, setSubjectEditOpen] = useState(false)
+  const [subjectStudent,  setSubjectStudent]  = useState<Student | null>(null)
+
+  const openSubjectModal = (s: Student) => {
+    setSubjectStudent(s)
+    setEditSubjects(s.subjects || [])
+    setSubjectEditOpen(true)
+  }
+
+  const toggleSubject = (subject: string) => {
+    setEditSubjects(prev => {
+      if (subject === "All Subjects") {
+        return prev.includes("All Subjects") ? [] : ["All Subjects"]
+      }
+      const without = prev.filter(s => s !== "All Subjects")
+      return without.includes(subject)
+        ? without.filter(s => s !== subject)
+        : [...without, subject]
+    })
+  }
+
+  const handleSaveSubjects = async () => {
+    if (!subjectStudent) return
+    setSubjectSaving(true)
+    try {
+      await studentsApi.update(subjectStudent.id, {
+        ...subjectStudent,
+        subjects: editSubjects.join(","),
+      })
+      setStudents(prev => prev.map(s =>
+        s.id === subjectStudent.id ? { ...s, subjects: editSubjects } : s
+      ))
+      // Sync view modal if open
+      if (selected?.id === subjectStudent.id) {
+        setSelected(prev => prev ? { ...prev, subjects: editSubjects } : prev)
+      }
+      setSubjectEditOpen(false)
+    } catch (err: any) { alert(err.message) }
+    finally { setSubjectSaving(false) }
+  }
+
+  const isSeniorStd = (std: string) => std === "11th" || std === "12th" || std === "11" || std === "12"
+
+  // ═══════════════════════════════════════════════════════
   return (
     <div className="space-y-6 pt-12 lg:pt-0">
       <Card>
@@ -356,15 +330,11 @@ export function StudentsContent() {
               </SelectContent>
             </Select>
           </div>
+
           <div className="flex justify-end mb-4">
             <div className="flex items-center gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                onChange={handleImportExcel}
-                className="hidden"
-              />
+              <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv"
+                onChange={handleImportExcel} className="hidden" />
               <Button onClick={() => fileInputRef.current?.click()} variant="outline" disabled={importing}>
                 {importing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
                 Import Excel
@@ -391,7 +361,7 @@ export function StudentsContent() {
                     <TableHead className="text-white font-semibold hidden lg:table-cell">Board</TableHead>
                     <TableHead className="text-white font-semibold">Std</TableHead>
                     <TableHead className="text-white font-semibold hidden md:table-cell">Location</TableHead>
-                    {/* ── NEW columns ── */}
+                    <TableHead className="text-white font-semibold hidden xl:table-cell">Subjects</TableHead>
                     <TableHead className="text-white font-semibold hidden lg:table-cell">Total Fee</TableHead>
                     <TableHead className="text-white font-semibold hidden lg:table-cell">Paid</TableHead>
                     <TableHead className="text-white font-semibold hidden sm:table-cell">Status</TableHead>
@@ -401,7 +371,7 @@ export function StudentsContent() {
                 <TableBody>
                   {students.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                         No students found
                       </TableCell>
                     </TableRow>
@@ -416,7 +386,22 @@ export function StudentsContent() {
                         <TableCell>{s.standard}</TableCell>
                         <TableCell className="hidden md:table-cell">{s.location}</TableCell>
 
-                        {/* ── Fee columns ── */}
+                        {/* Subjects column */}
+                        <TableCell className="hidden xl:table-cell max-w-[180px]">
+                          {s.subjects?.length ? (
+                            <div className="flex flex-wrap gap-1">
+                              {s.subjects.map(sub => (
+                                <span key={sub}
+                                  className="px-1.5 py-0.5 rounded bg-green-50 border border-green-200 text-green-700 text-[10px] font-semibold whitespace-nowrap">
+                                  {sub}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">—</span>
+                          )}
+                        </TableCell>
+
                         <TableCell className="hidden lg:table-cell font-medium">
                           ₹{Number(s.fee).toLocaleString()}
                         </TableCell>
@@ -427,28 +412,33 @@ export function StudentsContent() {
                           <Badge className={cls}>{label}</Badge>
                         </TableCell>
 
-                        {/* ── Actions ── */}
+                        {/* Actions */}
                         <TableCell>
                           <div className="flex items-center justify-center gap-1">
-                            {/* View */}
                             <Button size="sm" variant="outline" className="h-8 w-8 p-0"
                               title="View details"
                               onClick={() => { setSelected(s); setViewOpen(true) }}>
                               <Eye className="h-4 w-4" />
                             </Button>
-                            {/* Update Fee */}
-                            <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:border-blue-300"
+                            {/* Edit subjects */}
+                            <Button size="sm" variant="outline"
+                              className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:border-green-300"
+                              title="Edit subjects"
+                              onClick={() => openSubjectModal(s)}>
+                              <BookOpen className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="outline"
+                              className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:border-blue-300"
                               title="Update total fee"
                               onClick={() => openFeeModal(s)}>
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            {/* Pay Fee */}
-                            <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-emerald-600 hover:text-emerald-700 hover:border-emerald-300"
+                            <Button size="sm" variant="outline"
+                              className="h-8 w-8 p-0 text-emerald-600 hover:text-emerald-700 hover:border-emerald-300"
                               title="Record payment"
                               onClick={() => openPayModal(s)}>
                               <IndianRupee className="h-4 w-4" />
                             </Button>
-                            {/* Delete */}
                             <Button size="sm" variant="destructive" className="h-8 w-8 p-0"
                               onClick={() => handleDelete(s.id)}>
                               <Trash2 className="h-4 w-4" />
@@ -465,7 +455,7 @@ export function StudentsContent() {
         </CardContent>
       </Card>
 
-      {/* ── View Modal ───────────────────────────────────── */}
+      {/* ── View Modal ────────────────────────────────────── */}
       <Dialog open={viewOpen} onOpenChange={setViewOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -492,7 +482,31 @@ export function StudentsContent() {
                 </div>
               ))}
 
-              {/* Fee summary inside view modal */}
+              {/* Subjects in view modal */}
+              <div className="p-3 bg-muted rounded-lg space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground font-medium">Subjects</p>
+                  <button
+                    onClick={() => { setViewOpen(false); openSubjectModal(selected) }}
+                    className="text-xs text-green-600 hover:text-green-700 font-semibold flex items-center gap-1">
+                    <Pencil className="h-3 w-3" /> Edit
+                  </button>
+                </div>
+                {selected.subjects?.length ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {selected.subjects.map(sub => (
+                      <span key={sub}
+                        className="px-2.5 py-1 rounded-full bg-green-100 border border-green-200 text-green-700 text-xs font-semibold">
+                        {sub}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">No subjects assigned</p>
+                )}
+              </div>
+
+              {/* Fee summary */}
               <div className="p-3 bg-muted rounded-lg space-y-2">
                 <p className="text-sm text-muted-foreground font-medium">Fee Summary</p>
                 <div className="grid grid-cols-3 gap-2 text-center">
@@ -512,10 +526,8 @@ export function StudentsContent() {
                   </div>
                 </div>
                 <div className="w-full bg-muted-foreground/20 rounded-full h-2 mt-1">
-                  <div
-                    className="bg-emerald-500 h-2 rounded-full transition-all"
-                    style={{ width: `${Math.min((Number(selected.paid_fee) / (Number(selected.fee) || 1)) * 100, 100)}%` }}
-                  />
+                  <div className="bg-emerald-500 h-2 rounded-full transition-all"
+                    style={{ width: `${Math.min((Number(selected.paid_fee) / (Number(selected.fee) || 1)) * 100, 100)}%` }} />
                 </div>
                 <p className="text-xs text-right text-muted-foreground">
                   {Number(selected.fee) > 0
@@ -528,7 +540,109 @@ export function StudentsContent() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Update Fee Modal ─────────────────────────────── */}
+      {/* ── Edit Subjects Modal ───────────────────────────── */}
+      <Dialog open={subjectEditOpen} onOpenChange={setSubjectEditOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-green-600" /> Edit Subjects
+            </DialogTitle>
+          </DialogHeader>
+
+          {subjectStudent && (
+            <div className="space-y-4 py-2">
+              {/* Student info */}
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted">
+                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold shrink-0">
+                  {subjectStudent.name.charAt(0)}
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">{subjectStudent.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {subjectStudent.standard && `Std ${subjectStudent.standard}`}
+                    {subjectStudent.course && ` · ${subjectStudent.course}`}
+                    {" · "}
+                    <span className="text-green-600 font-medium">
+                      {isSeniorStd(subjectStudent.standard) ? "11th–12th list" : "1st–10th list"}
+                    </span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Checklist */}
+              <div className="grid grid-cols-2 gap-2">
+                {(isSeniorStd(subjectStudent.standard) ? SUBJECTS_SENIOR : SUBJECTS_JUNIOR).map(subject => {
+                  const checked = editSubjects.includes(subject)
+                  const isAll   = subject === "All Subjects"
+                  return (
+                    <button
+                      key={subject}
+                      type="button"
+                      onClick={() => toggleSubject(subject)}
+                      className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-xs font-medium transition-all text-left
+                        ${isAll ? "col-span-2" : ""}
+                        ${isAll
+                          ? checked
+                            ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+                            : "border-dashed border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-600"
+                          : checked
+                            ? "border-green-500 bg-green-50 text-green-700 shadow-sm"
+                            : "border-gray-200 text-gray-600 hover:border-green-400 hover:bg-green-50/50"
+                        }`}
+                    >
+                      <span className={`w-4 h-4 rounded flex items-center justify-center shrink-0 border-2 transition-colors
+                        ${checked
+                          ? isAll ? "bg-white border-white" : "bg-green-500 border-green-500"
+                          : "border-gray-300"}`}
+                      >
+                        {checked && (
+                          <svg className={`w-2.5 h-2.5 ${isAll ? "text-blue-600" : "text-white"}`}
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </span>
+                      {subject}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Selected pills */}
+              {editSubjects.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {editSubjects.map(s => (
+                    <span key={s}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold">
+                      {s}
+                      <button type="button" onClick={() => toggleSubject(s)}
+                        className="hover:text-red-500 transition-colors ml-0.5">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              {editSubjects.length === 0 && (
+                <p className="text-xs text-muted-foreground italic text-center py-1">No subjects selected</p>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSubjectEditOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveSubjects} disabled={subjectSaving}
+              className="bg-green-600 hover:bg-green-700">
+              {subjectSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Save Subjects
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Update Fee Modal ──────────────────────────────── */}
       <Dialog open={feeModalOpen} onOpenChange={setFeeModalOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
@@ -536,10 +650,8 @@ export function StudentsContent() {
               <Pencil className="h-5 w-5 text-blue-600" /> Update Total Fee
             </DialogTitle>
           </DialogHeader>
-
           {feeStudent && (
             <div className="space-y-4 py-2">
-              {/* Student info */}
               <div className="flex items-center gap-3 p-3 rounded-lg bg-muted">
                 <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold shrink-0">
                   {feeStudent.name.charAt(0)}
@@ -552,28 +664,17 @@ export function StudentsContent() {
                   </p>
                 </div>
               </div>
-
-              {/* Current fee */}
               <div className="flex justify-between text-sm px-1">
                 <span className="text-muted-foreground">Current Fee</span>
                 <span className="font-semibold">₹{Number(feeStudent.fee).toLocaleString()}</span>
               </div>
-
-              {/* New fee input */}
               <div className="space-y-2">
                 <Label htmlFor="new-fee">New Total Fee (₹) <span className="text-destructive">*</span></Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">₹</span>
-                  <Input
-                    id="new-fee"
-                    type="number"
-                    min="0"
-                    value={newFee}
+                  <Input id="new-fee" type="number" min="0" value={newFee}
                     onChange={e => setNewFee(e.target.value)}
-                    placeholder="Enter new fee amount"
-                    className="pl-7"
-                    autoFocus
-                  />
+                    placeholder="Enter new fee amount" className="pl-7" autoFocus />
                 </div>
                 {newFee && (
                   <p className="text-xs text-muted-foreground px-1">
@@ -586,7 +687,6 @@ export function StudentsContent() {
               </div>
             </div>
           )}
-
           <DialogFooter>
             <Button variant="outline" onClick={() => setFeeModalOpen(false)}>Cancel</Button>
             <Button onClick={handleUpdateFee} disabled={feeSaving} className="bg-blue-600 hover:bg-blue-700">
@@ -597,7 +697,7 @@ export function StudentsContent() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Pay Fee Modal ────────────────────────────────── */}
+      {/* ── Pay Fee Modal ─────────────────────────────────── */}
       <Dialog open={payModalOpen} onOpenChange={setPayModalOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
@@ -605,10 +705,8 @@ export function StudentsContent() {
               <IndianRupee className="h-5 w-5 text-emerald-600" /> Record Payment
             </DialogTitle>
           </DialogHeader>
-
           {payStudent && (
             <div className="space-y-4 py-2">
-              {/* Student info */}
               <div className="flex items-center gap-3 p-3 rounded-lg bg-muted">
                 <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold shrink-0">
                   {payStudent.name.charAt(0)}
@@ -621,8 +719,6 @@ export function StudentsContent() {
                   </p>
                 </div>
               </div>
-
-              {/* Fee summary */}
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div className="rounded-lg border p-2">
                   <p className="text-xs text-muted-foreground">Total Fee</p>
@@ -639,31 +735,21 @@ export function StudentsContent() {
                   </p>
                 </div>
               </div>
-
-              {/* Payment mode toggle */}
               <div className="space-y-2">
                 <Label>Payment Type</Label>
                 <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => setPayMode("add")}
+                  <button onClick={() => setPayMode("add")}
                     className={`py-2 px-3 rounded-lg border text-sm font-medium transition-all ${
                       payMode === "add"
                         ? "bg-emerald-600 text-white border-emerald-600"
                         : "border-border text-muted-foreground hover:border-emerald-400"
-                    }`}
-                  >
-                    + Add Payment
-                  </button>
-                  <button
-                    onClick={() => setPayMode("set")}
+                    }`}>+ Add Payment</button>
+                  <button onClick={() => setPayMode("set")}
                     className={`py-2 px-3 rounded-lg border text-sm font-medium transition-all ${
                       payMode === "set"
                         ? "bg-blue-600 text-white border-blue-600"
                         : "border-border text-muted-foreground hover:border-blue-400"
-                    }`}
-                  >
-                    = Set Total Paid
-                  </button>
+                    }`}>= Set Total Paid</button>
                 </div>
                 <p className="text-xs text-muted-foreground px-1">
                   {payMode === "add"
@@ -671,8 +757,6 @@ export function StudentsContent() {
                     : "Sets the paid_fee column to exactly this value"}
                 </p>
               </div>
-
-              {/* Amount input */}
               <div className="space-y-2">
                 <Label htmlFor="pay-amount">
                   {payMode === "add" ? "Payment Amount (₹)" : "Set Paid Amount (₹)"}
@@ -680,19 +764,11 @@ export function StudentsContent() {
                 </Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">₹</span>
-                  <Input
-                    id="pay-amount"
-                    type="number"
-                    min="0"
-                    value={payAmount}
+                  <Input id="pay-amount" type="number" min="0" value={payAmount}
                     onChange={e => setPayAmount(e.target.value)}
                     placeholder={payMode === "add" ? "Amount being paid now" : "Total amount paid so far"}
-                    className="pl-7"
-                    autoFocus
-                  />
+                    className="pl-7" autoFocus />
                 </div>
-
-                {/* Live preview */}
                 {payAmount && !isNaN(parseFloat(payAmount)) && (
                   <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 space-y-1">
                     <p className="text-xs font-medium text-emerald-700">After this update:</p>
@@ -720,7 +796,6 @@ export function StudentsContent() {
               </div>
             </div>
           )}
-
           <DialogFooter>
             <Button variant="outline" onClick={() => setPayModalOpen(false)}>Cancel</Button>
             <Button onClick={handlePayFee} disabled={paySaving} className="bg-emerald-600 hover:bg-emerald-700">
