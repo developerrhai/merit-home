@@ -355,6 +355,7 @@ export function StudentsContent() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-slate-900">
+                    <TableHead className="text-white font-semibold w-12 text-center">Sr.</TableHead>
                     <TableHead className="text-white font-semibold">Name</TableHead>
                     <TableHead className="text-white font-semibold hidden sm:table-cell">Phone</TableHead>
                     <TableHead className="text-white font-semibold hidden md:table-cell">Father Name</TableHead>
@@ -371,14 +372,17 @@ export function StudentsContent() {
                 <TableBody>
                   {students.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
                         No students found
                       </TableCell>
                     </TableRow>
-                  ) : students.map(s => {
+                  ) : students.map((s, index) => {
                     const { label, cls } = feeStatus(s)
                     return (
                       <TableRow key={s.id} className="hover:bg-muted/50">
+                        <TableCell className="text-center text-muted-foreground text-sm font-medium">
+                          {index + 1}
+                        </TableCell>
                         <TableCell className="font-medium">{s.name}</TableCell>
                         <TableCell className="hidden sm:table-cell">{s.phone}</TableCell>
                         <TableCell className="hidden md:table-cell">{s.father_name}</TableCell>
@@ -420,7 +424,6 @@ export function StudentsContent() {
                               onClick={() => { setSelected(s); setViewOpen(true) }}>
                               <Eye className="h-4 w-4" />
                             </Button>
-                            {/* Edit subjects */}
                             <Button size="sm" variant="outline"
                               className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:border-green-300"
                               title="Edit subjects"
@@ -551,7 +554,6 @@ export function StudentsContent() {
 
           {subjectStudent && (
             <div className="space-y-4 py-2">
-              {/* Student info */}
               <div className="flex items-center gap-3 p-3 rounded-lg bg-muted">
                 <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold shrink-0">
                   {subjectStudent.name.charAt(0)}
@@ -569,7 +571,6 @@ export function StudentsContent() {
                 </div>
               </div>
 
-              {/* Checklist */}
               <div className="grid grid-cols-2 gap-2">
                 {(isSeniorStd(subjectStudent.standard) ? SUBJECTS_SENIOR : SUBJECTS_JUNIOR).map(subject => {
                   const checked = editSubjects.includes(subject)
@@ -608,7 +609,6 @@ export function StudentsContent() {
                 })}
               </div>
 
-              {/* Selected pills */}
               {editSubjects.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 pt-1">
                   {editSubjects.map(s => (
