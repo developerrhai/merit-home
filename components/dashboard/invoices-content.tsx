@@ -496,7 +496,8 @@ export function InvoicesContent() {
           <p>₹ ${Number(inv.amount).toLocaleString()} Rupees only</p>
           <br/>
           <h3>Terms and Conditions</h3>
-          <p>FEES ONCE PAID WILL NOT BE REFUNDED IN ANY CASES</p>
+          <p>1. ONCE FEES PAID, CAN'T BE REFUND, TRANSFER OR ADJUSTED UNDER ANY CIRCUMSTANCES.</p>
+          <p>2. FEES MUST BE PAID ON DUE DATE TO AVOID ADMISSION CANCELLATION.</p>
           <p>Thank You !</p>
           <p>MERIT HOME LEARNING CENTRE</p>
         </div>
@@ -516,7 +517,7 @@ export function InvoicesContent() {
       <div class="payment-signature">
         <div class="payment">
           <p><b>Pay To:</b></p>
-          <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=9511646082@sbi&pn=MERIT%20HOME%20LEARNING%20CENTRE&am=${inv.amount}&cu=INR" />
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=upi://pay?pa=9511646082@sbi&pn=MERIT%20HOME%20LEARNING%20CENTRE&am=${inv.amount}&cu=INR" />
           <p>Bank Name : SBI BANK</p>
           <p>Bank Account No. : 43064858046</p>
           <p>Bank IFSC code : SBIN015706</p>
