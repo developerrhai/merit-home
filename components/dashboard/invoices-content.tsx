@@ -491,29 +491,115 @@ export function InvoicesContent() {
   }
 
 
-  const handleWhatsAppShare = (inv: Invoice) => {
-    const invoiceNo = `INV${String(inv.id).padStart(3, "0")}`
-    const amount = Number(inv.amount || 0)
-    const paid = Number(inv.paid_amount || 0)
-    const balance = amount - paid
-    const message = [
-      "Hello,",
-      "",
-      `Invoice: ${invoiceNo}`,
-      `Student: ${inv.student_name || "-"}`,
-      `Course: ${inv.course || "-"}`,
-      `Due Date: ${fmtDate(inv.due_date)}`,
-      `Total Amount: Rs ${amount.toLocaleString()}`,
-      `Paid Amount: Rs ${paid.toLocaleString()}`,
-      `Balance: Rs ${balance.toLocaleString()}`,
-      "",
-      "Please find your invoice details above.",
-    ].join("\n")
+ const handlePrint = async (inv: Invoice) => {
+  // Fetch full student details if course/standard missing
+  let course   = inv.course   || ""
+  let standard = inv.standard || ""
 
-    const phone = ""
-    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
-    window.open(url, "_blank", "noopener,noreferrer")
+  if ((!course || !standard) && inv.student_id) {
+    try {
+      const res: any = await studentsApi.getAll({ search: inv.student_name })
+      const match = (res.data || []).find((s: Student) => String(s.id) === String(inv.student_id))
+      if (match) {
+        course   = course   || match.course   || ""
+        standard = standard || match.standard || ""
+      }
+    } catch { /* fallback to empty */ }
   }
+
+  const w = window.open("", "_blank")
+  if (!w) return
+  const balance = Number(inv.amount) - Number(inv.paid_amount)
+  w.document.write(`
+  <html>
+  <head>
+    <title>Invoice #${inv.id}</title>
+    <style>
+      body { font-family: Arial, sans-serif; padding: 30px; color: #333; }
+      .container { max-width: 900px; margin: auto; border: 1px solid #ddd; padding: 20px; }
+      .header { display: flex; justify-content: space-between; align-items: flex-start; }
+      .title { color: #ff6b00; font-weight: bold; font-size: 18px; }
+      hr { margin: 15px 0; }
+      .flex { display: flex; justify-content: space-between; margin-top: 10px; }
+      table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+      table th, table td { border-bottom: 1px solid #ddd; padding: 8px; text-align: left; }
+      .total { font-weight: bold; }
+      .box { width: 48%; }
+      .footer { text-align: right; margin-top: 40px; }
+      .section-title { font-weight: bold; margin-top: 10px; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div>
+          <h2>MERIT HOME LEARNING CENTRE</h2>
+        </div>
+        <div class="title">INSTITUTE BILL</div>
+      </div>
+      <hr/>
+      <div class="flex">
+        <div><b>Invoice No:</b> INV${String(inv.id).padStart(4, "0")}</div>
+        <div><b>Date:</b> ${new Date().toLocaleDateString()}</div>
+      </div>
+      <div class="section-title">BILL TO</div>
+      <p><b>Name:</b> ${inv.student_name}</p>
+      <p><b>Student ID:</b> ${inv.student_id || "-"}</p>
+      <p><b>Standard:</b> ${standard || "-"}</p>
+      <p><b>Course:</b> ${course || "-"}</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Description</th><th>Course</th><th>Transaction</th>
+            <th>Install Date</th><th>Due Date</th><th>Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>${inv.description || "Course Fee"}</td>
+            <td>${course || "-"}</td>
+            <td>${inv.transaction_type || "Cash"}</td>
+            <td>${fmtDate(inv.install_date)}</td>
+            <td>${fmtDate(inv.due_date)}</td>
+            <td>₹${Number(inv.amount).toLocaleString()}</td>
+          </tr>
+          <tr class="total">
+            <td colspan="5">TOTAL</td>
+            <td>₹${Number(inv.amount).toLocaleString()}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="flex">
+        <div class="box">
+          <h4>PAYMENT QR CODE</h4>
+          <p><b>UPI ID:</b> 9511646082@sbi</p>
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=upi://pay?pa=9511646082@sbi&pn=MERIT%20HOME%20LEARNING%20CENTRE&am=${inv.amount}&cu=INR" alt="Payment QR Code" />
+        </div>
+        <div class="box">
+          <h4>BANK DETAILS</h4>
+          <p><b>Account Name:</b> MERIT HOME LEARNING CENTRE</p>
+          <p><b>Bank:</b> SBI</p>
+          <p><b>Account No:</b> 43064858046</p>
+          <p><b>IFSC:</b> SBIN015706</p>
+          <p><b>UPI:</b> 9511646082@sbi</p>
+          <br/>
+          <p><b>Total Amount:</b> ₹${inv.amount}</p>
+          <p><b>Received Amount:</b> ₹${inv.paid_amount}</p>
+          <p><b>Balance:</b> ₹${balance}</p>
+          <p>${Number(inv.amount).toLocaleString()} Rupees Only</p>
+        </div>
+      </div>
+      <div class="footer">
+        <p>AUTHORISED SIGNATORY</p>
+        <p><b>MERIT HOME CLASSES</b></p>
+      </div>
+    </div>
+  </body>
+  </html>
+  `)
+  w.document.close()
+  w.print()
+}
 
   const f = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }))
   const filteredInvoices = invoices.filter((inv) =>
