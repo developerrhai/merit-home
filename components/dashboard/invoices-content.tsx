@@ -15,14 +15,15 @@ import { invoicesApi, studentsApi } from "@/lib/api"
 interface Invoice {
   id: number
   student_name: string
+  student_phone?: string
   amount: number
-  student_phone?: string   // ← add this
   paid_amount: number
   due_date?: string
   course?: string
   student_id?: string
   standard?: string
   install_date?: string
+  paid_date?: string
   description?: string
   transaction_type?: string
 }
@@ -69,16 +70,16 @@ const statusIcon = (s: string) => ({
 const fmtDate = (d?: string) => d ? new Date(d).toLocaleDateString() : "—"
 
 export function InvoicesContent() {
-  const [invoices,     setInvoices]     = useState<Invoice[]>([])
-  const [summary,      setSummary]      = useState<Summary>({ total_invoiced: 0, total_paid: 0, total_pending: 0 })
-  const [loading,      setLoading]      = useState(true)
-  const [saving,       setSaving]       = useState(false)
-  const [filterStatus, setFilterStatus] = useState("all")
+  const [invoices,      setInvoices]      = useState<Invoice[]>([])
+  const [summary,       setSummary]       = useState<Summary>({ total_invoiced: 0, total_paid: 0, total_pending: 0 })
+  const [loading,       setLoading]       = useState(true)
+  const [saving,        setSaving]        = useState(false)
+  const [filterStatus,  setFilterStatus]  = useState("all")
   const [studentFilter, setStudentFilter] = useState("")
-  const [modalOpen,    setModalOpen]    = useState(false)
-  const [viewOpen,     setViewOpen]     = useState(false)
-  const [selected,     setSelected]     = useState<Invoice | null>(null)
-  const [editing,      setEditing]      = useState<Invoice | null>(null)
+  const [modalOpen,     setModalOpen]     = useState(false)
+  const [viewOpen,      setViewOpen]      = useState(false)
+  const [selected,      setSelected]      = useState<Invoice | null>(null)
+  const [editing,       setEditing]       = useState<Invoice | null>(null)
 
   const [students,        setStudents]        = useState<Student[]>([])
   const [studentSearch,   setStudentSearch]   = useState("")
@@ -92,6 +93,7 @@ export function InvoicesContent() {
     paid_amount:      "",
     due_date:         "",
     install_date:     "",
+    paid_date:        "",
     transaction_type: "Cash",
     description:      "",
     student_id:       "",
@@ -165,8 +167,8 @@ export function InvoicesContent() {
     clearStudent()
     setForm({
       student_name: "", amount: "", paid_amount: "",
-      due_date: "", install_date: "", transaction_type: "Cash",
-      description: "", student_id: "",
+      due_date: "", install_date: "", paid_date: "",
+      transaction_type: "Cash", description: "", student_id: "",
     })
     setModalOpen(true)
   }
@@ -184,10 +186,10 @@ export function InvoicesContent() {
         paid_amount:      parseFloat(form.paid_amount) || 0,
         due_date:         form.due_date,
         install_date:     form.install_date || undefined,
+        paid_date:        form.paid_date || undefined,
         transaction_type: form.transaction_type,
         description:      form.description,
       }
-
       if (editing) {
         await invoicesApi.update(editing.id, payload)
       } else {
@@ -216,67 +218,50 @@ export function InvoicesContent() {
     setStudentSearch(inv.student_name || "")
     setShowDropdown(false)
     setForm({
-      student_name: inv.student_name || "",
-      student_id: inv.student_id || "",
-      amount: String(inv.amount ?? ""),
-      paid_amount: String(inv.paid_amount ?? 0),
-      due_date: inv.due_date ? new Date(inv.due_date).toISOString().split("T")[0] : "",
-      install_date: inv.install_date ? new Date(inv.install_date).toISOString().split("T")[0] : "",
+      student_name:     inv.student_name || "",
+      student_id:       inv.student_id || "",
+      amount:           String(inv.amount ?? ""),
+      paid_amount:      String(inv.paid_amount ?? 0),
+      due_date:         inv.due_date     ? new Date(inv.due_date).toISOString().split("T")[0]     : "",
+      install_date:     inv.install_date ? new Date(inv.install_date).toISOString().split("T")[0] : "",
+      paid_date:        inv.paid_date    ? new Date(inv.paid_date).toISOString().split("T")[0]    : "",
       transaction_type: inv.transaction_type || "Cash",
-      description: inv.description || "",
+      description:      inv.description || "",
     })
     setModalOpen(true)
   }
 
   const handleExportExcel = () => {
-    if (!invoices.length) {
-      alert("No invoices to export")
-      return
-    }
-
+    if (!invoices.length) { alert("No invoices to export"); return }
     const headers = [
-      "Invoice ID",
-      "Student Name",
-      "Student ID",
-      "Amount",
-      "Paid Amount",
-      "Balance",
-      "Install Date",
-      "Due Date",
-      "Transaction Type",
-      "Status",
-      "Description",
+      "Invoice ID", "Student Name", "Student ID", "Amount", "Paid Amount",
+      "Balance", "Paid Date", "Install Date", "Due Date", "Transaction Type", "Status", "Description",
     ]
-
     const rows = invoices.map((inv) => {
-      const amount = Number(inv.amount || 0)
-      const paid = Number(inv.paid_amount || 0)
+      const amount  = Number(inv.amount || 0)
+      const paid    = Number(inv.paid_amount || 0)
       const balance = amount - paid
       return [
         `INV${String(inv.id).padStart(3, "0")}`,
         inv.student_name || "",
         inv.student_id || "",
-        amount,
-        paid,
-        balance,
+        amount, paid, balance,
+        inv.paid_date    ? new Date(inv.paid_date).toLocaleDateString("en-CA")    : "",
         inv.install_date ? new Date(inv.install_date).toLocaleDateString("en-CA") : "",
-        inv.due_date ? new Date(inv.due_date).toLocaleDateString("en-CA") : "",
+        inv.due_date     ? new Date(inv.due_date).toLocaleDateString("en-CA")     : "",
         inv.transaction_type || "",
         getStatus(inv),
         inv.description || "",
       ]
     })
-
     const esc = (value: string | number) => `"${String(value).replace(/"/g, "\"\"")}"`
-    const csv = [headers, ...rows].map((row) => row.map(esc).join(",")).join("\n")
+    const csv  = [headers, ...rows].map((row) => row.map(esc).join(",")).join("\n")
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement("a")
     a.href = url
     a.download = `invoices_${new Date().toISOString().slice(0, 10)}.csv`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
+    document.body.appendChild(a); a.click(); document.body.removeChild(a)
     URL.revokeObjectURL(url)
   }
 
@@ -285,375 +270,185 @@ export function InvoicesContent() {
     try { await invoicesApi.remove(id); load() } catch (err: any) { alert(err.message) }
   }
 
-  // const handlePrint = (inv: Invoice) => {
-  //   const w = window.open("", "_blank")
-  //   if (!w) return
-  //   const balance = Number(inv.amount) - Number(inv.paid_amount)
-  //   w.document.write(`
-  //   <html>
-  //   <head>
-  //     <title>Invoice #${inv.id}</title>
-  //     <style>
-  //       body { font-family: Arial, sans-serif; padding: 30px; color: #333; }
-  //       .container { max-width: 900px; margin: auto; border: 1px solid #ddd; padding: 20px; }
-  //       .header { display: flex; justify-content: space-between; align-items: flex-start; }
-  //       .title { color: #ff6b00; font-weight: bold; font-size: 18px; }
-  //       hr { margin: 15px 0; }
-  //       .flex { display: flex; justify-content: space-between; margin-top: 10px; }
-  //       table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-  //       table th, table td { border-bottom: 1px solid #ddd; padding: 8px; text-align: left; }
-  //       .total { font-weight: bold; }
-  //       .box { width: 48%; }
-  //       .footer { text-align: right; margin-top: 40px; }
-  //       .section-title { font-weight: bold; margin-top: 10px; }
-  //     </style>
-  //   </head>
-  //   <body>
-  //     <div class="container">
-  //       <div class="header">
-  //         <div>
-  //           <h2>Merit Home Education Pvt. Ltd.</h2>
-  //           <p>Chapekar Chowk, Chinchwad, Pune</p>
-  //           <p>GSTIN: 27AAUCM5976C1ZV</p>
-  //         </div>
-  //         <div class="title">INSTITUTE BILL</div>
-  //       </div>
-  //       <hr/>
-  //       <div class="flex">
-  //         <div><b>Invoice No:</b> INV${String(inv.id).padStart(4, "0")}</div>
-  //         <div><b>Date:</b> ${new Date().toLocaleDateString()}</div>
-  //       </div>
-  //       <div class="section-title">BILL TO</div>
-  //       <p><b>Name:</b> ${inv.student_name}</p>
-  //       <p><b>Student ID:</b> ${inv.student_id || "-"}</p>
-  //       <p><b>Standard:</b> ${inv.standard || "-"}</p>
-  //       <p><b>Course:</b> ${inv.course || "-"}</p>
-  //       <table>
-  //         <thead>
-  //           <tr>
-  //             <th>Description</th><th>Course</th><th>Transaction</th>
-  //             <th>Install Date</th><th>Due Date</th><th>Amount</th>
-  //           </tr>
-  //         </thead>
-  //         <tbody>
-  //           <tr>
-  //             <td>${inv.description || "Course Fee"}</td>
-  //             <td>${inv.course || "-"}</td>
-  //             <td>${inv.transaction_type || "Cash"}</td>
-  //             <td>${fmtDate(inv.install_date)}</td>
-  //             <td>${fmtDate(inv.due_date)}</td>
-  //             <td>₹${Number(inv.amount).toLocaleString()}</td>
-  //           </tr>
-  //           <tr class="total">
-  //             <td colspan="5">TOTAL</td>
-  //             <td>₹${Number(inv.amount).toLocaleString()}</td>
-  //           </tr>
-  //         </tbody>
-  //       </table>
-  //       <div class="flex">
-  //         <div class="box">
-  //           <h4>PAYMENT QR CODE</h4>
-  //           <p>UPI: 8261050815@ybl</p>
-  //           <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=upi://pay?pa=8261050815@ybl&pn=MeritHome&am=${inv.amount}" />
-  //         </div>
-  //         <div class="box">
-  //           <h4>BANK DETAILS</h4>
-  //           <p><b>Account Name:</b> Merit Home Education Pvt. Ltd.</p>
-  //           <p><b>Bank:</b> HDFC Bank</p>
-  //           <p><b>Account No:</b> 123456789012</p>
-  //           <p><b>IFSC:</b> HDFC0001234</p>
-  //           <p><b>Branch:</b> Chinchwad Pune</p>
-  //           <p><b>UPI:</b> 8261050815@ybl</p>
-  //           <br/>
-  //           <p><b>Total Amount:</b> ₹${inv.amount}</p>
-  //           <p><b>Received Amount:</b> ₹${inv.paid_amount}</p>
-  //           <p><b>Balance:</b> ₹${balance}</p>
-  //           <p>${Number(inv.amount).toLocaleString()} Rupees Only</p>
-  //         </div>
-  //       </div>
-  //       <div class="footer">
-  //         <p>AUTHORISED SIGNATORY</p>
-  //         <p><b>Merit Home Education</b></p>
-  //       </div>
-  //     </div>
-  //   </body>
-  //   </html>
-  //   `)
-  //   w.document.close()
-  //   w.print()
-  // }
+  const handlePrint = async (inv: Invoice) => {
+    let studentPhone = inv.student_phone || ""
+    let standard     = inv.standard      || ""
 
+    // Fetch phone + standard from students table if missing
+    if ((!studentPhone || !standard) && inv.student_id) {
+      try {
+        const res: any = await studentsApi.getAll({ search: inv.student_name })
+        const match = (res.data || []).find((s: Student) => String(s.id) === String(inv.student_id))
+        if (match) {
+          if (!studentPhone) studentPhone = match.phone    || ""
+          if (!standard)     standard     = match.standard || ""
+        }
+      } catch { /* fallback */ }
+    }
 
+    // Paid date: prefer paid_date, fall back to install_date
+    const paidDate = inv.paid_date || inv.install_date || ""
 
+    const today = new Date().toLocaleDateString("en-IN", {
+      day: "2-digit", month: "2-digit", year: "numeric"
+    })
 
+    const w = window.open("", "_blank")
+    if (!w) return
+    const balance = Number(inv.amount) - Number(inv.paid_amount)
 
-   //<p>201/A, New Excelsior Building Opp. Crown Hotel, KHADKI Pune - 411003</p>
-     //       <p>GSTIN: 27AAUCM5976C1ZV</p>
+    w.document.write(`
+    <html>
+    <head>
+      <title>Invoice #${inv.id}</title>
+      <style>
+        @page { size: A4; margin: 20mm; }
+        body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #000; }
+        .container { width: 100%; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0b7db7; padding-bottom: 10px; }
+        .company h2 { margin: 0; font-size: 30px; font-weight: 700; }
+        .company p { margin: 4px 0; font-size: 14px; }
+        .logo { width: 150px; height: 150px; object-fit: contain; }
+        .title { text-align: center; color: #0b7db7; font-size: 34px; font-weight: bold; margin: 18px 0; }
+        .top-section { display: flex; justify-content: space-between; margin-top: 20px; }
+        .bill-to h3, .invoice-details h3 { margin-bottom: 10px; font-size: 18px; }
+        .bill-to p, .invoice-details p { margin: 6px 0; font-size: 15px; }
+        .invoice-details { text-align: right; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { background: #0b7db7; color: #fff; padding: 10px; font-size: 14px; text-align: left; }
+        td { padding: 10px; border-bottom: 1px solid #ccc; font-size: 14px; }
+        td:last-child, th:last-child { text-align: right; }
+        .summary-section { display: flex; justify-content: space-between; margin-top: 30px; }
+        .terms { width: 48%; }
+        .terms h3 { margin-bottom: 10px; }
+        .terms p { margin: 6px 0; font-size: 14px; }
+        .summary { width: 40%; }
+        .summary table { margin-top: 0; }
+        .summary td { border: none; padding: 8px 0; }
+        .total-row { background: #0b7db7; color: #fff; font-weight: bold; }
+        .payment-signature { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 50px; }
+        .payment { width: 45%; }
+        .payment img { width: 140px; margin-top: 10px; }
+        .payment p { margin: 5px 0; font-size: 14px; }
+        .signature { width: 40%; text-align: center; }
+        .signature img { width: 140px; margin-top: 20px; }
+        .signature p { margin: 5px 0; }
+        .auth { margin-top: 10px; font-weight: bold; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
 
-const handlePrint = async (inv: Invoice) => {
-  let studentPhone = inv.student_phone || ""
-  let standard     = inv.standard      || ""
+        <div class="header">
+          <div class="company">
+            <h2>MERIT HOME LEARNING CENTRE</h2>
+            <p>201/A, New Excelsior Building, Khadki Bazar, Khadki, Pune</p>
+            <p>Phone no : 9511646082</p>
+            <p>Email : info@merithome.in</p>
+            <p>State: 27-Maharashtra</p>
+          </div>
+          <img class="logo" src="${window.location.origin}/logo.jpeg" />
+        </div>
 
-  // Fetch from students table if either is missing
-  if ((!studentPhone || !standard) && inv.student_id) {
-    try {
-      const res: any = await studentsApi.getAll({ search: inv.student_name })
-      const match = (res.data || []).find((s: Student) => String(s.id) === String(inv.student_id))
-      if (match) {
-        if (!studentPhone) studentPhone = match.phone    || ""
-        if (!standard)     standard     = match.standard || ""
-      }
-    } catch { /* fallback */ }
+        <div class="title">Tax Invoice</div>
+
+        <div class="top-section">
+          <div class="bill-to">
+            <h3>Bill To</h3>
+            <p><b>${inv.student_name}</b></p>
+            <p>Contact No. : ${studentPhone || "-"}</p>
+            <p>Student ID : ${inv.student_id || "-"}</p>
+            <p>Standard : ${standard || "-"}</p>
+          </div>
+          <div class="invoice-details">
+            <h3>Invoice Details</h3>
+            <p>Invoice No. : INV${String(inv.id).padStart(4, "0")}</p>
+            <p>Date : ${today}</p>
+          </div>
+        </div>
+
+        <table>
+          <tr>
+            <th>#</th>
+            <th>Course Name</th>
+            <th>Due Date</th>
+            <th>Paid Date</th>
+            <th>Transaction Type</th>
+            <th>Amount</th>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>${inv.description || inv.course || "Course Fees"}</td>
+            <td>${fmtDate(inv.due_date)}</td>
+            <td>${fmtDate(paidDate)}</td>
+            <td>${inv.transaction_type || "Online"}</td>
+            <td>₹ ${Number(inv.amount).toLocaleString()}</td>
+          </tr>
+        </table>
+
+        <div class="summary-section">
+          <div class="terms">
+            <h3>Invoice Amount In Words</h3>
+            <p>₹ ${Number(inv.amount).toLocaleString()} Rupees only</p>
+            <br/>
+            <h3>Terms and Conditions</h3>
+            <p>1. ONCE FEES PAID, CAN'T BE REFUND, TRANSFER OR ADJUSTED UNDER ANY CIRCUMSTANCES.</p>
+            <p>2. FEES MUST BE PAID ON DUE DATE TO AVOID ADMISSION CANCELLATION.</p>
+            <p>Thank You !</p>
+            <p>MERIT HOME LEARNING CENTRE</p>
+          </div>
+          <div class="summary">
+            <table>
+              <tr class="total-row"><td>Total</td><td>₹ ${Number(inv.amount).toLocaleString()}</td></tr>
+              <tr><td>Received</td><td>₹ ${Number(inv.paid_amount).toLocaleString()}</td></tr>
+              <tr><td>Balance</td><td>₹ ${balance.toLocaleString()}</td></tr>
+            </table>
+          </div>
+        </div>
+
+        <div class="payment-signature">
+          <div class="payment">
+            <p><b>Pay To:</b></p>
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=upi://pay?pa=9511646082@sbi&pn=MERIT%20HOME%20LEARNING%20CENTRE&am=${inv.amount}&cu=INR" />
+            <p>Bank Name : SBI BANK</p>
+            <p>Bank Account No. : 43064858046</p>
+            <p>Bank IFSC code : SBIN015706</p>
+            <p>Account holder's name : MERIT HOME LEARNING CENTRE</p>
+          </div>
+          <div class="signature">
+            <p>For : MERIT HOME LEARNING CENTRE</p>
+            <img src="${window.location.origin}/sign.png" />
+            <div class="auth">Authorized Signatory</div>
+          </div>
+        </div>
+
+      </div>
+    </body>
+    </html>
+    `)
+    w.document.close()
+    w.print()
   }
 
-  const today = new Date().toLocaleDateString("en-IN", {
-    day: "2-digit", month: "2-digit", year: "numeric"
-  })
-
-  const w = window.open("", "_blank")
-  if (!w) return
-  const balance = Number(inv.amount) - Number(inv.paid_amount)
-
-  w.document.write(`
-  <html>
-  <head>
-    <title>Invoice #${inv.id}</title>
-    <style>
-      @page { size: A4; margin: 20mm; }
-      body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #000; }
-      .container { width: 100%; }
-      .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0b7db7; padding-bottom: 10px; }
-      .company h2 { margin: 0; font-size: 30px; font-weight: 700; }
-      .company p { margin: 4px 0; font-size: 14px; }
-      .logo { width: 150px; height: 150px; object-fit: contain; }
-      .title { text-align: center; color: #0b7db7; font-size: 34px; font-weight: bold; margin: 18px 0; }
-      .top-section { display: flex; justify-content: space-between; margin-top: 20px; }
-      .bill-to h3, .invoice-details h3 { margin-bottom: 10px; font-size: 18px; }
-      .bill-to p, .invoice-details p { margin: 6px 0; font-size: 15px; }
-      .invoice-details { text-align: right; }
-      table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-      th { background: #0b7db7; color: #fff; padding: 10px; font-size: 14px; text-align: left; }
-      td { padding: 10px; border-bottom: 1px solid #ccc; font-size: 14px; }
-      td:last-child, th:last-child { text-align: right; }
-      .summary-section { display: flex; justify-content: space-between; margin-top: 30px; }
-      .terms { width: 48%; }
-      .terms h3 { margin-bottom: 10px; }
-      .terms p { margin: 6px 0; font-size: 14px; }
-      .summary { width: 40%; }
-      .summary table { margin-top: 0; }
-      .summary td { border: none; padding: 8px 0; }
-      .total-row { background: #0b7db7; color: #fff; font-weight: bold; padding: 8px; }
-      .payment-signature { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 50px; }
-      .payment { width: 45%; }
-      .payment img { width: 140px; margin-top: 10px; }
-      .payment p { margin: 5px 0; font-size: 14px; }
-      .signature { width: 40%; text-align: center; }
-      .signature img { width: 140px; margin-top: 20px; }
-      .signature p { margin: 5px 0; }
-      .auth { margin-top: 10px; font-weight: bold; }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <div class="header">
-        <div class="company">
-          <h2>MERIT HOME LEARNING CENTRE</h2>
-          <p>201/A, New Excelsior Building, Khadki Bazar, Khadki, Pune</p>
-          <p>Phone no : 9511646082</p>
-          <p>Email : info@merithome.in</p>
-          <p>State: 27-Maharashtra</p>
-        </div>
-        <img class="logo" src="${window.location.origin}/logo.jpeg" />
-      </div>
-
-      <div class="title">Tax Invoice</div>
-
- <div class="top-section">
-        <div class="bill-to">
-          <h3>Bill To</h3>
-          <p><b>${inv.student_name}</b></p>
-          <p>Contact No. : ${studentPhone || "-"}</p>
-          <p>Student ID : ${inv.student_id || "-"}</p>
-          <p>Standard : ${standard || "-"}</p>
-        </div>
-        <div class="invoice-details">
-          <h3>Invoice Details</h3>
-          <p>Invoice No. : INV${String(inv.id).padStart(4, "0")}</p>
-          <p>Date : ${today}</p>
-        </div>
-      </div>
-
-      <table>
-        <tr>
-          <th>#</th><th>Course Name</th><th>Due Date</th><th>Paid Date</th><th>Transaction Type</th><th>Amount</th>
-        </tr>
-        <tr>
-          <td>1</td>
-          <td>${inv.description || inv.course || "Course Fees"}</td>
-          <td>${fmtDate(inv.due_date)}</td>
-          <td>${fmtDate(inv.install_date)}</td>
-          <td>${inv.transaction_type || "Online"}</td>
-          <td>₹ ${Number(inv.amount).toLocaleString()}</td>
-        </tr>
-      </table>
-
-      <div class="summary-section">
-        <div class="terms">
-          <h3>Invoice Amount In Words</h3>
-          <p>₹ ${Number(inv.amount).toLocaleString()} Rupees only</p>
-          <br/>
-          <h3>Terms and Conditions</h3>
-          <p>1. ONCE FEES PAID, CAN'T BE REFUND, TRANSFER OR ADJUSTED UNDER ANY CIRCUMSTANCES.</p>
-          <p>2. FEES MUST BE PAID ON DUE DATE TO AVOID ADMISSION CANCELLATION.</p>
-          <p>Thank You !</p>
-          <p>MERIT HOME LEARNING CENTRE</p>
-        </div>
-        <div class="summary">
-          <table>
-            <tr><td>Sub Total</td><td>₹ ${Number(inv.amount).toLocaleString()}</td></tr>
-            <tr class="total-row"><td>Total</td><td>₹ ${Number(inv.amount).toLocaleString()}</td></tr>
-            <tr><td>Received</td><td>₹ ${Number(inv.paid_amount).toLocaleString()}</td></tr>
-            <tr><td>Balance</td><td>₹ ${balance.toLocaleString()}</td></tr>
-            <tr><td>Payment mode</td><td>${inv.transaction_type || "Online"}</td></tr>
-            <tr><td>Previous Balance</td><td>₹ 0</td></tr>
-            <tr><td>Current Balance</td><td>₹ ${balance.toLocaleString()}</td></tr>
-          </table>
-        </div>
-      </div>
-
-      <div class="payment-signature">
-        <div class="payment">
-          <p><b>Pay To:</b></p>
-          <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=upi://pay?pa=9511646082@sbi&pn=MERIT%20HOME%20LEARNING%20CENTRE&am=${inv.amount}&cu=INR" />
-          <p>Bank Name : SBI BANK</p>
-          <p>Bank Account No. : 43064858046</p>
-          <p>Bank IFSC code : SBIN015706</p>
-          <p>Account holder's name : MERIT HOME LEARNING CENTRE</p>
-        </div>
-        <div class="signature">
-          <p>For : MERIT HOME LEARNING CENTRE</p>
-          <img src="${window.location.origin}/sign.png" />
-          <div class="auth">Authorized Signatory</div>
-        </div>
-      </div>
-    </div>
-  </body>
-  </html>
-  `)
-  w.document.close()
-  w.print()
-}
-
-
-//  const handlePrint = async (inv: Invoice) => {
-//   // Fetch full student details if course/standard missing
-//   let course   = inv.course   || ""
-//   let standard = inv.standard || ""
-
-//   if ((!course || !standard) && inv.student_id) {
-//     try {
-//       const res: any = await studentsApi.getAll({ search: inv.student_name })
-//       const match = (res.data || []).find((s: Student) => String(s.id) === String(inv.student_id))
-//       if (match) {
-//         course   = course   || match.course   || ""
-//         standard = standard || match.standard || ""
-//       }
-//     } catch { /* fallback to empty */ }
-//   }
-
-//   const w = window.open("", "_blank")
-//   if (!w) return
-//   const balance = Number(inv.amount) - Number(inv.paid_amount)
-//   w.document.write(`
-//   <html>
-//   <head>
-//     <title>Invoice #${inv.id}</title>
-//     <style>
-//       body { font-family: Arial, sans-serif; padding: 30px; color: #333; }
-//       .container { max-width: 900px; margin: auto; border: 1px solid #ddd; padding: 20px; }
-//       .header { display: flex; justify-content: space-between; align-items: flex-start; }
-//       .title { color: #ff6b00; font-weight: bold; font-size: 18px; }
-//       hr { margin: 15px 0; }
-//       .flex { display: flex; justify-content: space-between; margin-top: 10px; }
-//       table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-//       table th, table td { border-bottom: 1px solid #ddd; padding: 8px; text-align: left; }
-//       .total { font-weight: bold; }
-//       .box { width: 48%; }
-//       .footer { text-align: right; margin-top: 40px; }
-//       .section-title { font-weight: bold; margin-top: 10px; }
-//     </style>
-//   </head>
-//   <body>
-//     <div class="container">
-//       <div class="header">
-//         <div>
-//           <h2>MERIT HOME LEARNING CENTRE</h2>
-//         </div>
-//         <div class="title">INSTITUTE BILL</div>
-//       </div>
-//       <hr/>
-//       <div class="flex">
-//         <div><b>Invoice No:</b> INV${String(inv.id).padStart(4, "0")}</div>
-//         <div><b>Date:</b> ${new Date().toLocaleDateString()}</div>
-//       </div>
-//       <div class="section-title">BILL TO</div>
-//       <p><b>Name:</b> ${inv.student_name}</p>
-//       <p><b>Student ID:</b> ${inv.student_id || "-"}</p>
-//       <p><b>Standard:</b> ${standard || "-"}</p>
-//       <p><b>Course:</b> ${course || "-"}</p>
-//       <table>
-//         <thead>
-//           <tr>
-//             <th>Description</th><th>Course</th><th>Transaction</th>
-//             <th>Install Date</th><th>Due Date</th><th>Amount</th>
-//           </tr>
-//         </thead>
-//         <tbody>
-//           <tr>
-//             <td>${inv.description || "Course Fee"}</td>
-//             <td>${course || "-"}</td>
-//             <td>${inv.transaction_type || "Cash"}</td>
-//             <td>${fmtDate(inv.install_date)}</td>
-//             <td>${fmtDate(inv.due_date)}</td>
-//             <td>₹${Number(inv.amount).toLocaleString()}</td>
-//           </tr>
-//           <tr class="total">
-//             <td colspan="5">TOTAL</td>
-//             <td>₹${Number(inv.amount).toLocaleString()}</td>
-//           </tr>
-//         </tbody>
-//       </table>
-//       <div class="flex">
-//         <div class="box">
-//           <h4>PAYMENT QR CODE</h4>
-//           <p><b>UPI ID:</b> 9511646082@sbi</p>
-//           <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=upi://pay?pa=9511646082@sbi&pn=MERIT%20HOME%20LEARNING%20CENTRE&am=${inv.amount}&cu=INR" alt="Payment QR Code" />
-//         </div>
-//         <div class="box">
-//           <h4>BANK DETAILS</h4>
-//           <p><b>Account Name:</b> MERIT HOME LEARNING CENTRE</p>
-//           <p><b>Bank:</b> SBI</p>
-//           <p><b>Account No:</b> 43064858046</p>
-//           <p><b>IFSC:</b> SBIN015706</p>
-//           <p><b>UPI:</b> 9511646082@sbi</p>
-//           <br/>
-//           <p><b>Total Amount:</b> ₹${inv.amount}</p>
-//           <p><b>Received Amount:</b> ₹${inv.paid_amount}</p>
-//           <p><b>Balance:</b> ₹${balance}</p>
-//           <p>${Number(inv.amount).toLocaleString()} Rupees Only</p>
-//         </div>
-//       </div>
-//       <div class="footer">
-//         <p>AUTHORISED SIGNATORY</p>
-//         <p><b>MERIT HOME CLASSES</b></p>
-//       </div>
-//     </div>
-//   </body>
-//   </html>
-//   `)
-//   w.document.close()
-//   w.print()
-// }
+  const handleWhatsAppShare = (inv: Invoice) => {
+    const invoiceNo = `INV${String(inv.id).padStart(3, "0")}`
+    const amount    = Number(inv.amount || 0)
+    const paid      = Number(inv.paid_amount || 0)
+    const balance   = amount - paid
+    const message   = [
+      "Hello,", "",
+      `Invoice: ${invoiceNo}`,
+      `Student: ${inv.student_name || "-"}`,
+      `Course: ${inv.course || "-"}`,
+      `Due Date: ${fmtDate(inv.due_date)}`,
+      `Total Amount: Rs ${amount.toLocaleString()}`,
+      `Paid Amount: Rs ${paid.toLocaleString()}`,
+      `Balance: Rs ${balance.toLocaleString()}`,
+      "", "Please find your invoice details above.",
+    ].join("\n")
+    const url = `https://wa.me/?text=${encodeURIComponent(message)}`
+    window.open(url, "_blank", "noopener,noreferrer")
+  }
 
   const f = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }))
   const filteredInvoices = invoices.filter((inv) =>
@@ -727,8 +522,7 @@ const handlePrint = async (inv: Invoice) => {
                     <TableHead className="text-white font-semibold">Student</TableHead>
                     <TableHead className="text-white font-semibold hidden sm:table-cell">Amount</TableHead>
                     <TableHead className="text-white font-semibold hidden md:table-cell">Paid</TableHead>
-                    {/* ── NEW column ── */}
-                    <TableHead className="text-white font-semibold hidden lg:table-cell">Install Date</TableHead>
+                    <TableHead className="text-white font-semibold hidden lg:table-cell">Paid Date</TableHead>
                     <TableHead className="text-white font-semibold hidden lg:table-cell">Due Date</TableHead>
                     <TableHead className="text-white font-semibold">Status</TableHead>
                     <TableHead className="text-white font-semibold text-center">Actions</TableHead>
@@ -742,16 +536,16 @@ const handlePrint = async (inv: Invoice) => {
                       </TableCell>
                     </TableRow>
                   ) : filteredInvoices.map(inv => {
-                    const status = getStatus(inv)
+                    const status  = getStatus(inv)
+                    const paidDate = inv.paid_date || inv.install_date || ""
                     return (
                       <TableRow key={inv.id} className="hover:bg-muted/50">
                         <TableCell className="font-medium">INV{String(inv.id).padStart(3, "0")}</TableCell>
                         <TableCell>{inv.student_name}</TableCell>
                         <TableCell className="hidden sm:table-cell">₹{Number(inv.amount).toLocaleString()}</TableCell>
                         <TableCell className="hidden md:table-cell">₹{Number(inv.paid_amount).toLocaleString()}</TableCell>
-                        {/* ── NEW cell ── */}
                         <TableCell className="hidden lg:table-cell text-muted-foreground">
-                          {fmtDate(inv.install_date)}
+                          {fmtDate(paidDate)}
                         </TableCell>
                         <TableCell className="hidden lg:table-cell">{fmtDate(inv.due_date)}</TableCell>
                         <TableCell>
@@ -793,7 +587,7 @@ const handlePrint = async (inv: Invoice) => {
         </CardContent>
       </Card>
 
-      {/* ── Create Invoice Modal ─────────────────────────────── */}
+      {/* ── Create / Edit Invoice Modal ──────────────────────── */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -827,7 +621,7 @@ const handlePrint = async (inv: Invoice) => {
                       )}
                     </p>
                   </div>
-                  <button onClick={clearStudent} className="text-emerald-500 hover:text-red-500 transition-colors ml-2 mt-0.5 shrink-0" title="Change student">
+                  <button onClick={clearStudent} className="text-emerald-500 hover:text-red-500 transition-colors ml-2 mt-0.5 shrink-0">
                     <X className="h-4 w-4" />
                   </button>
                 </div>
@@ -895,11 +689,11 @@ const handlePrint = async (inv: Invoice) => {
               </div>
             </div>
 
-            {/* Installment Date + Transaction Type */}
+            {/* Paid Date + Transaction Type */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Installment Date</Label>
-                <Input type="date" value={form.install_date} onChange={e => f("install_date", e.target.value)} />
+                <Label>Paid Date</Label>
+                <Input type="date" value={form.paid_date} onChange={e => f("paid_date", e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label>Transaction Type <span className="text-destructive">*</span></Label>
@@ -941,18 +735,19 @@ const handlePrint = async (inv: Invoice) => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>Invoice Details</DialogTitle></DialogHeader>
           {selected && (() => {
-            const status = getStatus(selected)
+            const status   = getStatus(selected)
+            const paidDate = selected.paid_date || selected.install_date || ""
             return (
               <div className="space-y-3">
                 <div className="text-center pb-4 border-b">
-                  <h3 className="text-lg font-bold text-blue-600">Merit Home Private Limited</h3>
+                  <h3 className="text-lg font-bold text-blue-600">Merit Home Learning Centre</h3>
                   <p className="text-muted-foreground">Invoice #INV{String(selected.id).padStart(3, "0")}</p>
                 </div>
                 {([
                   ["Student",          selected.student_name],
                   ["Description",      selected.description],
                   ["Transaction Type", selected.transaction_type],
-                  ["Install Date",     fmtDate(selected.install_date)],
+                  ["Paid Date",        fmtDate(paidDate)],
                   ["Due Date",         fmtDate(selected.due_date)],
                   ["Total",            `₹${Number(selected.amount).toLocaleString()}`],
                   ["Paid",             `₹${Number(selected.paid_amount).toLocaleString()}`],
