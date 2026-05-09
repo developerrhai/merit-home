@@ -382,6 +382,13 @@ export function InvoicesContent() {
   //   w.print()
   // }
 
+
+
+
+
+   //<p>201/A, New Excelsior Building Opp. Crown Hotel, KHADKI Pune - 411003</p>
+     //       <p>GSTIN: 27AAUCM5976C1ZV</p>
+
    const handlePrint = (inv: Invoice) => {
     const w = window.open("", "_blank")
     if (!w) return
@@ -409,9 +416,7 @@ export function InvoicesContent() {
       <div class="container">
         <div class="header">
           <div>
-            <h2> DNYANSAGAR CLASSESS</h2>
-            <p>201/A, New Excelsior Building Opp. Crown Hotel, KHADKI Pune - 411003</p>
-            <p>GSTIN: 27AAUCM5976C1ZV</p>
+            <h2> MERIT HOME LEARNING CENTRE </h2>
           </div>
           <div class="title">INSTITUTE BILL</div>
         </div>
