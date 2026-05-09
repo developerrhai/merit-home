@@ -502,15 +502,20 @@ export function InvoicesContent() {
           <p>MERIT HOME LEARNING CENTRE</p>
         </div>
         <div class="summary">
-          <table>
-            <tr><td>Sub Total</td><td>₹ ${Number(inv.amount).toLocaleString()}</td></tr>
-            <tr class="total-row"><td>Total</td><td>₹ ${Number(inv.amount).toLocaleString()}</td></tr>
-            <tr><td>Received</td><td>₹ ${Number(inv.paid_amount).toLocaleString()}</td></tr>
-            <tr><td>Balance</td><td>₹ ${balance.toLocaleString()}</td></tr>
-            <tr><td>Payment mode</td><td>${inv.transaction_type || "Online"}</td></tr>
-            <tr><td>Previous Balance</td><td>₹ 0</td></tr>
-            <tr><td>Current Balance</td><td>₹ ${balance.toLocaleString()}</td></tr>
-          </table>
+        <table>
+        <tr>
+          <th>#</th><th>Course Name</th><th>Standard</th><th>Student ID</th><th>Due Date</th><th>Transaction Type</th><th>Amount</th>
+        </tr>
+        <tr>
+          <td>1</td>
+          <td>${inv.description || inv.course || "Course Fees"}</td>
+          <td>${inv.standard || "-"}</td>
+          <td>${inv.student_id || "-"}</td>
+          <td>${fmtDate(inv.due_date)}</td>
+          <td>${inv.transaction_type || "Online"}</td>
+          <td>₹ ${Number(inv.amount).toLocaleString()}</td>
+        </tr>
+      </table>
         </div>
       </div>
 
