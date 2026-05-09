@@ -438,7 +438,7 @@ body{
 }
 
 .logo{
-  width:70px;
+  width:100px;
 }
 
 .title{
