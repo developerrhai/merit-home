@@ -21,6 +21,7 @@ interface Inquiry {
   motherOccupation: string
   address: string
   branch: string
+  subjects: string[]
   email: string
   futurePlans: string
   reference: string
@@ -33,7 +34,6 @@ interface Inquiry {
   feedback2: string
   notes: string
   created_at: string
-  subjects: string[]
 }
 
 interface InquiryExtraRow {
@@ -43,7 +43,7 @@ interface InquiryExtraRow {
   father_name: string
   father_phone: string
   course: string
-  location: string
+  location: string 
   board: string
   standard: string
   status: string
@@ -52,6 +52,7 @@ interface InquiryExtraRow {
   email: string
   address: string
   branch: string
+  subjects: string 
   college_name: string
   college_timing: string
   last_exam_marks: string
@@ -68,23 +69,18 @@ interface InquiryExtraRow {
   notes: string
   admin_id: number
   inquiry_date: string
-  subjects: string
 }
 
 // ─────────────────────────────────────────────
 // Constants
 // ─────────────────────────────────────────────
-const SUBJECTS_JUNIOR = ["English", "Math", "Science", "SST", "All Subjects"]
-const SUBJECTS_SENIOR = ["English", "Math", "Physics", "Biology", "Chemistry", "All Subjects"]
-
 const EMPTY_FORM = {
   name: "", phone: "", father_name: "", father_phone: "", dob: "", sex: "",
-  email: "", address: "", branch: "",
+  email: "", address: "", branch: "",  subjects: [] as string[],
   standard: "", course: "", last_exam_marks: "", college_name: "", college_timing: "",
   future_plans: "", father_occupation: "", mother_occupation: "", sibling_name: "",
   reference: "", taking_coaching: "", hostel_required: "",
   status: "Pending", feedback1: "", feedback2: "", notes: "",
-  subjects: [] as string[],
 }
 
 const REF_BADGE: Record<string, string> = {
@@ -109,6 +105,9 @@ const STATUS_DOT: Record<string, string> = {
   Pending:   "bg-yellow-400",
   Maybe:     "bg-blue-400",
 }
+
+const SUBJECTS_JUNIOR = ["English", "Math", "Science", "SST", "All Subjects"]
+const SUBJECTS_SENIOR = ["English", "Math", "Physics", "Biology", "Chemistry", "All Subjects"]
 
 const DRAWER_STYLES = `
   @keyframes slideInRight {
@@ -135,13 +134,14 @@ function inquiryToForm(inq: Inquiry) {
   return {
     name:              inq.studentName,
     phone:             inq.studentContact,
-    father_name:       "",
+    father_name:       "",               // store father_name in Inquiry if needed
     father_phone:      inq.parentContact,
     dob:               inq.dob,
     sex:               inq.sex,
     email:             inq.email,
     address:           inq.address,
     branch:            inq.branch,
+    subjects:          inq.subjects || [],
     standard:          inq.standard,
     course:            inq.batch,
     last_exam_marks:   inq.lastExamMarks,
@@ -158,7 +158,6 @@ function inquiryToForm(inq: Inquiry) {
     feedback1:         inq.feedback1,
     feedback2:         inq.feedback2,
     notes:             inq.notes,
-    subjects:          inq.subjects || [],
   }
 }
 
@@ -175,19 +174,17 @@ export function InquiryStudentsContent() {
   const [filterBatch, setFilterBatch]       = useState("")
   const [filterStatus, setFilterStatus]     = useState("")
 
+  // Drawer (shared Add / Edit)
   const [drawerMounted, setDrawerMounted]   = useState(false)
   const [drawerOpen, setDrawerOpen]         = useState(false)
   const [editingId, setEditingId]           = useState<number | null>(null)
-  const [formData, setFormData]             = useState<typeof EMPTY_FORM>(EMPTY_FORM)
+  const [formData, setFormData]             = useState(EMPTY_FORM)
   const [formLoading, setFormLoading]       = useState(false)
   const [formError, setFormError]           = useState("")
   const [formSuccess, setFormSuccess]       = useState("")
 
+  // Responsive
   const [isMobile, setIsMobile]             = useState(false)
-
-  // ── Derived ──
-  const isSeniorForm = formData.standard === "11th" || formData.standard === "12th"
-  const subjectList  = isSeniorForm ? SUBJECTS_SENIOR : SUBJECTS_JUNIOR
 
   // ── Fetch ──
   const fetchInquiries = useCallback(async () => {
@@ -210,6 +207,7 @@ export function InquiryStudentsContent() {
           motherOccupation: row.mother_occupation || "",
           address:          row.address || "",
           branch:           row.branch || "",
+          subjects:         row.subjects ? row.subjects.split(",").filter(Boolean) : [],
           email:            row.email || "",
           futurePlans:      row.future_plans || "",
           reference:        row.reference || "",
@@ -222,7 +220,6 @@ export function InquiryStudentsContent() {
           feedback2:        row.feedback2 || "",
           notes:            row.notes || "",
           created_at:       row.inquiry_date || "",
-          subjects:         row.subjects ? row.subjects.split(",").filter(Boolean) : [],
         }))
         setInquiries(mapped)
       } else {
@@ -237,6 +234,7 @@ export function InquiryStudentsContent() {
 
   useEffect(() => { fetchInquiries() }, [fetchInquiries])
 
+  // ── Responsive listener ──
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768)
     check()
@@ -268,28 +266,14 @@ export function InquiryStudentsContent() {
     }, 280)
   }
 
+  
+
+
   const handleFormChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }))
 
-  // ── Toggle subject ──
-  const toggleSubject = (subject: string) => {
-    setFormData(prev => {
-      const prevSubjects = prev.subjects as string[]
-      if (subject === "All Subjects") {
-        const already = prevSubjects.includes("All Subjects")
-        return { ...prev, subjects: already ? [] : ["All Subjects"] }
-      }
-      const without = prevSubjects.filter(s => s !== "All Subjects")
-      const already = without.includes(subject)
-      return {
-        ...prev,
-        subjects: already ? without.filter(s => s !== subject) : [...without, subject],
-      }
-    })
-  }
-
-  // ── Submit ──
+  // ── Submit (Add or Edit) ──
   const handleSubmit = async () => {
     setFormError(""); setFormSuccess("")
     if (!formData.name.trim())     return setFormError("Student name is required.")
@@ -297,18 +281,12 @@ export function InquiryStudentsContent() {
     if (!formData.standard.trim()) return setFormError("Standard is required.")
 
     setFormLoading(true)
-    const payload = {
-      ...formData,
-      subjects: Array.isArray(formData.subjects)
-        ? (formData.subjects as string[]).join(",")
-        : formData.subjects,
-    }
     try {
       let data: any
       if (editingId !== null) {
-        data = await inquiryExtraApi.update(editingId, payload)
+        data = await inquiryExtraApi.update(editingId, formData)
       } else {
-        data = await inquiryExtraApi.create({ ...payload, inquiry_date: new Date().toISOString() })
+        data = await inquiryExtraApi.create({ ...formData, inquiry_date: new Date().toISOString() })
       }
       if (data.success) {
         setFormSuccess(editingId ? "Inquiry updated successfully!" : "Inquiry added successfully!")
@@ -350,13 +328,12 @@ export function InquiryStudentsContent() {
   const handleExportExcel = () => {
     if (!filtered.length) { alert("No inquiries to export"); return }
     const headers = ["ID","Student Name","Gender","Student Contact","Parent Contact","Email",
-      "Standard","Batch","Subjects","Branch & Address","Reference","Status",
-      "Feedback 1","Feedback 2","Notes","Hostel Required","Taking Coaching","Date"]
+      "Standard","Batch","Branch","Address","Reference","Status","Feedback 1","Feedback 2","Notes",
+      "Hostel Required","Taking Coaching","Date"]
     const rows = filtered.map(inq => [
       inq.id, inq.studentName, inq.sex, inq.studentContact, inq.parentContact,
-      inq.email, inq.standard, inq.batch, inq.subjects?.join(", ") || "",
-      inq.branch, inq.address, inq.reference, inq.status,
-      inq.feedback1, inq.feedback2, inq.notes,
+      inq.email, inq.standard, inq.batch, inq.branch, inq.address,
+      inq.reference, inq.status, inq.feedback1, inq.feedback2, inq.notes,
       inq.hostelRequired, inq.takingCoaching,
       inq.created_at ? new Date(inq.created_at).toLocaleDateString("en-CA") : "",
     ])
@@ -371,8 +348,9 @@ export function InquiryStudentsContent() {
 
   const isEditMode = editingId !== null
 
+  // ── Stat cards ──
   const statCards = [
-    { label: "Total Inquiries", value: inquiries.length,                                       bg: "bg-[#2563EB]" },
+    { label: "Total Inquiries", value: inquiries.length,                                    bg: "bg-[#2563EB]" },
     { label: "Confirmed",       value: inquiries.filter(i => i.status === "Confirmed").length, bg: "bg-[#16A34A]" },
     { label: "Pending",         value: inquiries.filter(i => i.status === "Pending").length,   bg: "bg-[#EA580C]" },
     { label: "Maybe",           value: inquiries.filter(i => i.status === "Maybe").length,     bg: "bg-[#7C3AED]" },
@@ -438,9 +416,9 @@ export function InquiryStudentsContent() {
           </div>
           <div className="flex gap-2 flex-wrap">
             {[
-              { val: filterSex,    set: setFilterSex,    opts: ["Male","Female","Other"],       placeholder: "All Genders"  },
-              { val: filterBatch,  set: setFilterBatch,  opts: ["Online","Offline"],            placeholder: "All Batches"  },
-              { val: filterStatus, set: setFilterStatus, opts: ["Confirmed","Pending","Maybe"], placeholder: "All Statuses" },
+              { val: filterSex,    set: setFilterSex,    opts: ["Male","Female","Other"],            placeholder: "All Genders"  },
+              { val: filterBatch,  set: setFilterBatch,  opts: ["Online","Offline"],                 placeholder: "All Batches"  },
+              { val: filterStatus, set: setFilterStatus, opts: ["Confirmed","Pending","Maybe"],      placeholder: "All Statuses" },
             ].map(({ val, set, opts, placeholder }) => (
               <select key={placeholder} value={val} onChange={e => set(e.target.value)}
                 className="flex-1 min-w-[110px] px-2 sm:px-3 py-2 sm:py-2.5 rounded-lg border border-gray-200 bg-white text-gray-700 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 transition-all cursor-pointer">
@@ -475,7 +453,7 @@ export function InquiryStudentsContent() {
         )}
 
         {/* ═══════════════════════════════════════════════
-            MOBILE — Card list
+            MOBILE  — Card list (< 768 px)
         ═══════════════════════════════════════════════ */}
         {!loading && isMobile && (
           <div className="space-y-3">
@@ -484,6 +462,7 @@ export function InquiryStudentsContent() {
             ) : filtered.map((inq, idx) => (
               <div key={inq.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
 
+                {/* Card header */}
                 <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className="w-8 h-8 rounded-full bg-[#2563EB] flex items-center justify-center shrink-0">
@@ -502,33 +481,23 @@ export function InquiryStudentsContent() {
                   </select>
                 </div>
 
+                {/* Card body */}
                 <div className="px-4 py-3 grid grid-cols-2 gap-x-4 gap-y-2">
-                  <MobileField label="Phone"     value={inq.studentContact} />
-                  <MobileField label="Standard"  value={inq.standard} />
-                  <MobileField label="Batch"     value={inq.batch} />
-                  <MobileField label="Branch"    value={inq.branch} />
+                  <MobileField label="Phone"    value={inq.studentContact} />
+                  <MobileField label="Standard" value={inq.standard} />
+                  <MobileField label="Batch"    value={inq.batch} />
+                  <MobileField label="Branch"   value={inq.branch} />
                   <MobileField label="Reference" value={inq.reference} />
-                  <MobileField label="Date"      value={
+                  <MobileField label="Date"     value={
                     inq.created_at
                       ? new Date(inq.created_at).toLocaleDateString("en-IN", { day:"2-digit", month:"short", year:"numeric" })
                       : "—"
                   } />
-                  {inq.subjects?.length > 0 && (
-                    <div className="col-span-2">
-                      <p className="text-gray-400 text-[10px] uppercase tracking-wide font-medium mb-1">Subjects</p>
-                      <div className="flex flex-wrap gap-1">
-                        {inq.subjects.map(s => (
-                          <span key={s} className="px-1.5 py-0.5 rounded bg-green-50 border border-green-200 text-green-700 text-[10px] font-semibold">
-                            {s}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                   {inq.feedback1 && <MobileField label="Feedback 1" value={inq.feedback1} className="col-span-2" />}
                   {inq.notes     && <MobileField label="Notes"      value={inq.notes}     className="col-span-2" />}
                 </div>
 
+                {/* Card footer: View + Edit */}
                 <div className="px-4 py-3 border-t border-gray-100 flex gap-2">
                   <button onClick={() => setSelected(inq)}
                     className="flex-1 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold transition-colors text-center flex items-center justify-center gap-1">
@@ -557,7 +526,7 @@ export function InquiryStudentsContent() {
         )}
 
         {/* ═══════════════════════════════════════════════
-            DESKTOP — Full table
+            DESKTOP — Full table (≥ 768 px)
         ═══════════════════════════════════════════════ */}
         {!loading && !isMobile && (
           <div className="rounded-2xl border border-gray-200 overflow-hidden bg-white shadow-sm">
@@ -565,7 +534,7 @@ export function InquiryStudentsContent() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gray-900">
-                    {["Sr no.","Student","Contact","Standard","Batch","Subjects","Branch & Address",
+                    {["Sr no.","Student","Contact","Standard","Batch","Branch & Address",
                       "Reference","Status","Feedback 1","Feedback 2","Notes","Inquiry Date","Actions"
                     ].map(h => (
                       <th key={h} className="text-left px-4 py-3 text-white font-semibold text-xs whitespace-nowrap">{h}</th>
@@ -574,7 +543,7 @@ export function InquiryStudentsContent() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {filtered.length === 0 ? (
-                    <tr><td colSpan={14}><EmptyState /></td></tr>
+                    <tr><td colSpan={13}><EmptyState /></td></tr>
                   ) : filtered.map((inq, idx) => (
                     <tr key={inq.id} className="hover:bg-gray-50/60 transition-colors">
 
@@ -609,27 +578,10 @@ export function InquiryStudentsContent() {
                       {/* Batch */}
                       <td className="px-4 py-3">
                         <span className={`px-2 py-1 rounded-md border text-xs font-semibold whitespace-nowrap ${
-                          inq.batch === "Online"
-                            ? "bg-green-50 border-green-200 text-green-700"
-                            : "bg-gray-50 border-gray-200 text-gray-600"
+                          inq.batch === "Online" ? "bg-green-50 border-green-200 text-green-700" : "bg-gray-50 border-gray-200 text-gray-600"
                         }`}>
                           {inq.batch || "—"}
                         </span>
-                      </td>
-
-                      {/* Subjects */}
-                      <td className="px-4 py-3 max-w-[180px]">
-                        {inq.subjects?.length ? (
-                          <div className="flex flex-wrap gap-1">
-                            {inq.subjects.map(s => (
-                              <span key={s} className="px-1.5 py-0.5 rounded bg-green-50 border border-green-200 text-green-700 text-[10px] font-semibold whitespace-nowrap">
-                                {s}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-gray-400 text-xs">—</span>
-                        )}
                       </td>
 
                       {/* Branch & Address */}
@@ -684,9 +636,10 @@ export function InquiryStudentsContent() {
                           : "—"}
                       </td>
 
-                      {/* Actions */}
+                      {/* Actions: View + Edit */}
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5">
+                          {/* View */}
                           <button onClick={() => setSelected(inq)} title="View details"
                             className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-900 transition-colors">
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -694,6 +647,7 @@ export function InquiryStudentsContent() {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                             </svg>
                           </button>
+                          {/* Edit */}
                           <button onClick={() => openEditDrawer(inq)} title="Edit inquiry"
                             className="p-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-600 hover:text-amber-800 border border-amber-200 transition-colors">
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -717,7 +671,7 @@ export function InquiryStudentsContent() {
       </div>
 
       {/* ═══════════════════════════════════════════════
-          SLIDE-IN DRAWER
+          SLIDE-IN DRAWER  (Add & Edit — same component)
       ═══════════════════════════════════════════════ */}
       {drawerMounted && (
         <>
@@ -725,6 +679,7 @@ export function InquiryStudentsContent() {
 
           <div className={`fixed top-0 right-0 z-50 h-screen w-full max-w-[500px] bg-white shadow-2xl flex flex-col ${drawerOpen ? "drawer-in" : "drawer-out"}`}>
 
+            {/* Header — amber in Edit mode, dark in Add */}
             <div className={`shrink-0 flex items-center justify-between px-4 sm:px-6 py-4 sm:py-5 ${isEditMode ? "bg-amber-600" : "bg-gray-900"}`}>
               <div className="flex items-center gap-3">
                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isEditMode ? "bg-white/20" : "bg-[#2563EB]"}`}>
@@ -750,6 +705,7 @@ export function InquiryStudentsContent() {
               </button>
             </div>
 
+            {/* Progress bar */}
             <div className="shrink-0 h-1 bg-gray-100">
               <div className={`h-full transition-all duration-500 ${isEditMode ? "bg-amber-500" : "bg-[#2563EB]"}`}
                 style={{ width: formLoading ? "75%" : formSuccess ? "100%" : "0%" }} />
@@ -824,16 +780,9 @@ export function InquiryStudentsContent() {
               <FormSection title="Academic Details" color="green">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <FormField label="Standard *">
-                    <select name="standard" value={formData.standard}
-                      onChange={e => {
-                        handleFormChange(e)
-                        setFormData(prev => ({ ...prev, standard: e.target.value, subjects: [] }))
-                      }}
-                      className={inputCls}>
+                    <select name="standard" value={formData.standard} onChange={handleFormChange} className={inputCls}>
                       <option value="">Select</option>
-                      {["8th","9th","10th","11th","12th","Dropper","Other"].map(s => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
+                      {["8th","9th","10th","11th","12th","Dropper","Other"].map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </FormField>
                   <FormField label="Batch">
@@ -855,66 +804,6 @@ export function InquiryStudentsContent() {
                   <FormField label="Future Plans" className="sm:col-span-2">
                     <input name="future_plans" value={formData.future_plans} onChange={handleFormChange} placeholder="e.g. JEE, NEET, MHT-CET" className={inputCls} />
                   </FormField>
-
-                  {/* Subject Checklist */}
-                  {formData.standard && (
-                    <FormField label={`Select Subjects (${isSeniorForm ? "11th – 12th" : "1st – 10th"})`} className="sm:col-span-2">
-                      <div className="grid grid-cols-2 gap-2 mt-1">
-                        {subjectList.map(subject => {
-                          const checked = (formData.subjects as string[]).includes(subject)
-                          const isAll   = subject === "All Subjects"
-                          return (
-                            <button
-                              key={subject}
-                              type="button"
-                              onClick={() => toggleSubject(subject)}
-                              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-xs font-medium transition-all text-left
-                                ${isAll ? "col-span-2" : ""}
-                                ${isAll
-                                  ? checked
-                                    ? "border-[#2563EB] bg-[#2563EB] text-white shadow-sm"
-                                    : "border-dashed border-gray-300 text-gray-500 hover:border-[#2563EB] hover:text-[#2563EB]"
-                                  : checked
-                                    ? "border-green-500 bg-green-50 text-green-700 shadow-sm"
-                                    : "border-gray-200 text-gray-600 hover:border-green-400 hover:bg-green-50/50"
-                                }`}
-                            >
-                              <span className={`w-4 h-4 rounded flex items-center justify-center shrink-0 border-2 transition-colors
-                                ${checked
-                                  ? isAll ? "bg-white border-white" : "bg-green-500 border-green-500"
-                                  : "border-gray-300"}`}
-                              >
-                                {checked && (
-                                  <svg className={`w-2.5 h-2.5 ${isAll ? "text-[#2563EB]" : "text-white"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                  </svg>
-                                )}
-                              </span>
-                              {subject}
-                            </button>
-                          )
-                        })}
-                      </div>
-
-                      {/* Selected pills */}
-                      {(formData.subjects as string[]).length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mt-2">
-                          {(formData.subjects as string[]).map(s => (
-                            <span key={s}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold">
-                              {s}
-                              <button type="button" onClick={() => toggleSubject(s)}
-                                className="hover:text-red-500 transition-colors ml-0.5">
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                              </button>
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </FormField>
-                  )}
                 </div>
               </FormSection>
 
@@ -933,9 +822,7 @@ export function InquiryStudentsContent() {
                   <FormField label="Reference">
                     <select name="reference" value={formData.reference} onChange={handleFormChange} className={inputCls}>
                       <option value="">Select</option>
-                      {["Social Media (Instagram/Facebook)","Google","Hoarding","Website","Justdial","Friends","Pamphlets","Other"].map(r => (
-                        <option key={r} value={r}>{r}</option>
-                      ))}
+                      {["Social Media (Instagram/Facebook)","Google","Hoarding","Website","Justdial","Friends","Pamphlets","Other"].map(r => <option key={r} value={r}>{r}</option>)}
                     </select>
                   </FormField>
                   <FormField label="Taking Coaching">
@@ -958,6 +845,7 @@ export function InquiryStudentsContent() {
               {/* Follow-up & Feedback */}
               <FormSection title="Follow-up & Feedback" color="purple">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Visual status picker */}
                   <FormField label="Status" className="sm:col-span-2">
                     <div className="flex gap-2">
                       {(["Confirmed","Pending","Maybe"] as const).map(s => (
@@ -1031,7 +919,7 @@ export function InquiryStudentsContent() {
       )}
 
       {/* ═══════════════════════════════════════════════
-          VIEW MODAL
+          VIEW MODAL  — slides up from bottom on mobile
       ═══════════════════════════════════════════════ */}
       {selected && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/40 backdrop-blur-sm"
@@ -1054,6 +942,7 @@ export function InquiryStudentsContent() {
                   <span className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[selected.status] || "bg-gray-400"}`} />
                   {selected.status}
                 </span>
+                {/* Edit from modal */}
                 <button onClick={() => openEditDrawer(selected)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold transition-colors">
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1081,7 +970,6 @@ export function InquiryStudentsContent() {
                 <InfoRow label="Branch"          value={selected.branch || "—"} />
                 <InfoRow label="Address"         value={selected.address || "—"} />
               </InfoGroup>
-
               <InfoGroup title="Academic Details" color="green">
                 <InfoRow label="Standard"        value={selected.standard} />
                 <InfoRow label="Batch"           value={selected.batch} />
@@ -1089,37 +977,18 @@ export function InquiryStudentsContent() {
                 <InfoRow label="College Name"    value={selected.collegeName || "—"} />
                 <InfoRow label="College Timing"  value={selected.collegeTiming || "—"} />
                 <InfoRow label="Future Plans"    value={selected.futurePlans || "—"} />
-                {/* Subjects row — full width with pills */}
-                <div className="sm:col-span-2 px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-100">
-                  <p className="text-gray-400 text-xs mb-1.5">Subjects</p>
-                  {selected.subjects?.length ? (
-                    <div className="flex flex-wrap gap-1.5">
-                      {selected.subjects.map(s => (
-                        <span key={s}
-                          className="px-2.5 py-1 rounded-full bg-green-100 border border-green-200 text-green-700 text-xs font-semibold">
-                          {s}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-900 text-sm font-semibold">—</p>
-                  )}
-                </div>
               </InfoGroup>
-
               <InfoGroup title="Family & Contact" color="orange">
                 <InfoRow label="Father's Occupation" value={selected.fatherOccupation || "—"} />
                 <InfoRow label="Mother's Occupation" value={selected.motherOccupation || "—"} />
                 <InfoRow label="Sibling Name"        value={selected.siblingName || "—"} />
               </InfoGroup>
-
               <InfoGroup title="Follow-up & Feedback" color="purple">
                 <InfoRow label="Status"     value={selected.status || "—"} />
                 <InfoRow label="Feedback 1" value={selected.feedback1 || "—"} />
                 <InfoRow label="Feedback 2" value={selected.feedback2 || "—"} />
                 <InfoRow label="Notes"      value={selected.notes || "—"} />
               </InfoGroup>
-
               <InfoGroup title="Other Info" color="dark">
                 <InfoRow label="Reference"       value={selected.reference || "—"} />
                 <InfoRow label="Taking Coaching" value={selected.takingCoaching || "—"} />
