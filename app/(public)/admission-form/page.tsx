@@ -2,7 +2,6 @@
 
 import { Header } from "@/components/ui/header"
 import { useState } from "react"
-import logo from '../../../public/logo.jpeg';
 
 const BOARDS = ["CBSE", "ICSE", "State Board", "IB", "IGCSE", "Other", "Cambridge Board"]
 
@@ -10,12 +9,15 @@ const STANDARDS = [
   "1st Standard", "2nd Standard", "3rd Standard",
   "4th Science", "5th Standard", "6th Standard",
   "7th Standard", "8th Standard", "9th Standard",
-  "10th Standard", "11th Standard","12th Standard"
+  "10th Standard", "11th Standard", "12th Standard"
 ]
 
 const BRANCHES = ["Chinchwad", "Wakad", "Thergaon"]
 
 const COURSES = ["IIT-JEE", "NEET", "MHT-CET", "Graduation CET"]
+
+const SUBJECTS_JUNIOR = ["English", "Math", "Science", "SST", "All Subjects"]
+const SUBJECTS_SENIOR = ["English", "Math", "Physics", "Biology", "Chemistry", "All Subjects"]
 
 interface FormData {
   studentName: string
@@ -27,12 +29,14 @@ interface FormData {
   standard: string
   branch: string
   course: string
+  subjects: string[]
 }
 
 const initial: FormData = {
   studentName: "", studentPhone: "",
   fatherName: "", fatherPhone: "",
   email: "", board: "", standard: "", branch: "", course: "",
+  subjects: [],
 }
 
 export default function AdmissionFormPage() {
@@ -43,6 +47,8 @@ export default function AdmissionFormPage() {
   const [touched, setTouched]       = useState<Partial<Record<keyof FormData, boolean>>>({})
 
   const isSenior = form.standard === "11th Standard" || form.standard === "12th Standard"
+  const hasStandard = form.standard !== ""
+  const subjectList = isSenior ? SUBJECTS_SENIOR : SUBJECTS_JUNIOR
 
   const set = (key: keyof FormData, val: string) => {
     setForm(prev => ({ ...prev, [key]: val }))
@@ -50,10 +56,31 @@ export default function AdmissionFormPage() {
     setError("")
   }
 
+  const toggleSubject = (subject: string) => {
+    setForm(prev => {
+      // If "All Subjects" selected, clear others and select only it
+      if (subject === "All Subjects") {
+        const already = prev.subjects.includes("All Subjects")
+        return { ...prev, subjects: already ? [] : ["All Subjects"] }
+      }
+      // If any individual subject picked, remove "All Subjects"
+      const without = prev.subjects.filter(s => s !== "All Subjects")
+      const already = without.includes(subject)
+      return {
+        ...prev,
+        subjects: already ? without.filter(s => s !== subject) : [...without, subject]
+      }
+    })
+    setTouched(prev => ({ ...prev, subjects: true }))
+    setError("")
+  }
+
   const fieldError = (key: keyof FormData) => {
     if (!touched[key]) return ""
-    if (!form[key].trim()) return "This field is required"
-    if ((key === "studentPhone" || key === "fatherPhone") && !/^\d{10}$/.test(form[key].replace(/\s/g, "")))
+    if (key === "subjects") return ""
+    const val = form[key as keyof Omit<FormData, "subjects">] as string
+    if (!val.trim()) return "This field is required"
+    if ((key === "studentPhone" || key === "fatherPhone") && !/^\d{10}$/.test(val.replace(/\s/g, "")))
       return "Enter a valid 10-digit number"
     return ""
   }
@@ -63,13 +90,15 @@ export default function AdmissionFormPage() {
     if (isSenior) required.push("course")
     const allTouched: Partial<Record<keyof FormData, boolean>> = {}
     required.forEach(k => { allTouched[k] = true })
-    setTouched(allTouched)
+    setTouched(prev => ({ ...prev, ...allTouched, subjects: true }))
     for (const k of required) {
-      if (!form[k].trim()) return "Please fill all required fields"
+      const val = form[k as keyof Omit<FormData, "subjects">] as string
+      if (!val.trim()) return "Please fill all required fields"
     }
     if (!/^\d{10}$/.test(form.studentPhone.replace(/\s/g,""))) return "Enter a valid student phone number"
     if (!/^\S+@\S+\.\S+$/.test(form.email)) return "Enter a valid email"
-    if (!/^\d{10}$/.test(form.fatherPhone.replace(/\s/g,"")))  return "Enter a valid father phone number"
+    if (!/^\d{10}$/.test(form.fatherPhone.replace(/\s/g,""))) return "Enter a valid father phone number"
+    if (form.subjects.length === 0) return "Please select at least one subject"
     return ""
   }
 
@@ -93,6 +122,7 @@ export default function AdmissionFormPage() {
           standard:     form.standard,
           location:     form.branch,
           course:       isSenior ? form.course : "",
+          subjects:     form.subjects,
         }),
       })
       const data = await res.json()
@@ -121,9 +151,14 @@ export default function AdmissionFormPage() {
             <p className="text-gray-500 mb-1">
               Thank you, <span className="font-semibold text-[#0d6efd]">{form.studentName}</span>
             </p>
-            <p className="text-gray-400 text-sm mb-6">
+            <p className="text-gray-400 text-sm mb-3">
               Our team will call you at <span className="text-gray-600 font-medium">{form.studentPhone}</span> shortly.
             </p>
+            {form.subjects.length > 0 && (
+              <div className="bg-cyan-50 rounded-xl p-3 mb-3 text-sm text-cyan-700">
+                <span className="font-semibold">Subjects:</span> {form.subjects.join(", ")}
+              </div>
+            )}
             <div className="bg-blue-50 rounded-2xl p-4 text-sm text-blue-700 font-medium">
               Merit home Learning center · {form.branch} Branch
             </div>
@@ -143,13 +178,9 @@ export default function AdmissionFormPage() {
   return (
     <div className="min-h-screen bg-[#e8f4f8] flex items-center justify-center p-4 py-10">
       <div className="w-full max-w-[42rem]">
-
         <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
 
-     
-         
-
-          <Header/>
+          <Header />
 
           {/* Form title */}
           <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
@@ -250,7 +281,11 @@ export default function AdmissionFormPage() {
               <SelectField
                 placeholder="Select Standard"
                 value={form.standard}
-                onChange={v => { set("standard", v); set("course", "") }}
+                onChange={v => {
+                  set("standard", v)
+                  set("course", "")
+                  setForm(prev => ({ ...prev, standard: v, course: "", subjects: [] }))
+                }}
                 options={STANDARDS}
                 error={fieldError("standard")}
                 icon={
@@ -276,6 +311,82 @@ export default function AdmissionFormPage() {
                     </svg>
                   }
                 />
+              )}
+
+              {/* Subject Checklist — visible once standard is selected */}
+              {hasStandard && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-bold text-cyan-600 uppercase tracking-wider">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    </svg>
+                    Select Subjects
+                    <span className="text-gray-400 font-normal normal-case tracking-normal">
+                      ({isSenior ? "11th – 12th" : "1st – 10th"})
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    {subjectList.map(subject => {
+                      const checked = form.subjects.includes(subject)
+                      const isAll = subject === "All Subjects"
+                      return (
+                        <button
+                          key={subject}
+                          type="button"
+                          onClick={() => toggleSubject(subject)}
+                          className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium transition-all duration-150 text-left
+                            ${isAll
+                              ? checked
+                                ? "border-[#0d6efd] bg-[#0d6efd] text-white shadow-md shadow-blue-200"
+                                : "border-dashed border-gray-300 text-gray-500 hover:border-[#0d6efd] hover:text-[#0d6efd]"
+                              : checked
+                                ? "border-cyan-500 bg-cyan-50 text-cyan-700 shadow-sm"
+                                : "border-gray-200 text-gray-600 hover:border-cyan-400 hover:bg-cyan-50/50"
+                            }
+                            ${isAll ? "col-span-2" : ""}
+                          `}
+                        >
+                          {/* Custom checkbox */}
+                          <span className={`w-5 h-5 rounded flex items-center justify-center shrink-0 border-2 transition-colors
+                            ${checked
+                              ? isAll ? "bg-white border-white" : "bg-cyan-500 border-cyan-500"
+                              : "border-gray-300"
+                            }`}
+                          >
+                            {checked && (
+                              <svg className={`w-3 h-3 ${isAll ? "text-[#0d6efd]" : "text-white"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </span>
+                          {subject}
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  {/* Selected subjects summary */}
+                  {form.subjects.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {form.subjects.map(s => (
+                        <span key={s} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-cyan-100 text-cyan-700 text-xs font-semibold">
+                          {s}
+                          <button type="button" onClick={() => toggleSubject(s)} className="hover:text-red-500 transition-colors">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {touched.subjects && form.subjects.length === 0 && (
+                    <p className="text-red-500 text-xs ml-1">Please select at least one subject</p>
+                  )}
+                </div>
               )}
             </Section>
 
