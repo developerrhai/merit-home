@@ -421,7 +421,7 @@ export function InvoicesContent() {
       .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0b7db7; padding-bottom: 10px; }
       .company h2 { margin: 0; font-size: 30px; font-weight: 700; }
       .company p { margin: 4px 0; font-size: 14px; }
-      .logo { width: 90px; height: 90px; object-fit: contain; }
+      .logo { width: 150px; height: 150px; object-fit: contain; }
       .title { text-align: center; color: #0b7db7; font-size: 34px; font-weight: bold; margin: 18px 0; }
       .top-section { display: flex; justify-content: space-between; margin-top: 20px; }
       .bill-to h3, .invoice-details h3 { margin-bottom: 10px; font-size: 18px; }
@@ -479,7 +479,7 @@ export function InvoicesContent() {
 
       <table>
         <tr>
-          <th>#</th><th>Item Name</th><th>Quantity</th><th>Price / Unit</th><th>Amount</th>
+          <th>#</th><th>Course Name</th><th>Quantity</th><th>Price / Unit</th><th>Amount</th>
         </tr>
         <tr>
           <td>1</td>
