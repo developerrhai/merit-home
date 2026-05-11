@@ -270,7 +270,7 @@ export function InvoicesContent() {
     try { await invoicesApi.remove(id); load() } catch (err: any) { alert(err.message) }
   }
 
- const handlePrint = async (inv: Invoice) => {
+const handlePrint = async (inv: Invoice) => {
     let studentPhone = inv.student_phone || ""
     let standard     = inv.standard      || ""
 
@@ -286,7 +286,6 @@ export function InvoicesContent() {
     }
 
     const paidDate = inv.paid_date || inv.install_date || ""
-
     const today = new Date().toLocaleDateString("en-IN", {
       day: "2-digit", month: "2-digit", year: "numeric"
     })
@@ -300,47 +299,93 @@ export function InvoicesContent() {
     <head>
       <title>Invoice #${inv.id}</title>
       <style>
-        @page { size: A4; margin: 20mm; }
-        body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #000; }
+        @page { size: A4; margin: 10mm 14mm; }
+        * { box-sizing: border-box; }
+        body {
+          font-family: Arial, Helvetica, sans-serif;
+          margin: 0; color: #000;
+          font-size: 12px;
+          line-height: 1.3;
+        }
         .container { width: 100%; }
-        .header { width: 100%; border-bottom: 2px solid #0b7db7; padding-bottom: 10px; }
-        .logo { width: 100%; max-height: 160px; object-fit: cover; display: block; }
-        .title { text-align: center; color: #0b7db7; font-size: 34px; font-weight: bold; margin: 18px 0; }
-        .top-section { display: flex; justify-content: space-between; margin-top: 20px; }
-        .bill-to h3, .invoice-details h3 { margin-bottom: 10px; font-size: 18px; }
-        .bill-to p, .invoice-details p { margin: 6px 0; font-size: 15px; }
+
+        /* Header logo */
+        .header { width: 100%; border-bottom: 2px solid #0b7db7; padding-bottom: 6px; margin-bottom: 4px; }
+        .logo { width: 100%; max-height: 110px; object-fit: cover; display: block; }
+
+        /* Title */
+        .title { text-align: center; color: #0b7db7; font-size: 20px; font-weight: bold; margin: 6px 0; }
+
+        /* Bill To + Invoice Details */
+        .top-section { display: flex; justify-content: space-between; margin-top: 6px; }
+        .bill-to h3, .invoice-details h3 { margin: 0 0 4px; font-size: 13px; color: #0b7db7; }
+        .bill-to p, .invoice-details p { margin: 2px 0; font-size: 11px; }
         .invoice-details { text-align: right; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th { background: #0b7db7; color: #fff; padding: 10px; font-size: 14px; text-align: left; }
-        td { padding: 10px; border-bottom: 1px solid #ccc; font-size: 14px; }
+
+        /* Items table */
+        table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        th { background: #0b7db7; color: #fff; padding: 6px 8px; font-size: 11px; text-align: left; }
+        td { padding: 6px 8px; border-bottom: 1px solid #ddd; font-size: 11px; }
         td:last-child, th:last-child { text-align: right; }
-        .summary-section { display: flex; justify-content: space-between; margin-top: 30px; }
-        .terms { width: 48%; }
-        .terms h3 { margin-bottom: 10px; }
-        .terms p { margin: 6px 0; font-size: 14px; }
-        .summary { width: 40%; }
-        .summary table { margin-top: 0; }
-        .summary td { border: none; padding: 8px 0; }
+
+        /* Summary row */
+        .summary-table { width: 40%; margin-left: auto; margin-top: 6px; border-collapse: collapse; }
+        .summary-table td { padding: 4px 8px; border: none; font-size: 11px; }
+        .summary-table td:last-child { text-align: right; }
         .total-row { background: #0b7db7; color: #fff; font-weight: bold; }
-        .payment-signature { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 50px; }
-        .payment { width: 45%; }
-        .payment img { width: 140px; margin-top: 10px; }
-        .payment p { margin: 5px 0; font-size: 14px; }
-        .signature { width: 40%; text-align: center; }
-        .signature img { width: 140px; margin-top: 20px; }
-        .signature p { margin: 5px 0; }
-        .auth { margin-top: 10px; font-weight: bold; }
+
+        /* Payment + Signature side by side */
+        .payment-signature {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-top: 10px;
+          gap: 10px;
+        }
+        .payment { width: 30%; }
+        .payment p { margin: 3px 0; font-size: 10px; }
+        .payment img { width: 90px; display: block; margin-top: 4px; }
+
+        .or-divider {
+          width: 10%;
+          text-align: center;
+          font-size: 13px;
+          font-weight: bold;
+          padding-top: 30px;
+          color: #555;
+        }
+
+        .bank-details { width: 30%; font-size: 10px; }
+        .bank-details p { margin: 3px 0; }
+        .bank-details b { font-size: 11px; }
+
+        .signature { width: 25%; text-align: center; }
+        .signature img { width: 90px; margin-top: 8px; }
+        .signature p { margin: 3px 0; font-size: 10px; }
+        .auth { margin-top: 4px; font-weight: bold; font-size: 10px; }
+
+        /* Terms */
+        .terms {
+          border-top: 1px solid #ccc;
+          margin-top: 10px;
+          padding-top: 6px;
+        }
+        .terms h3 { margin: 0 0 4px; font-size: 11px; color: #0b7db7; }
+        .terms p { margin: 2px 0; font-size: 10px; }
       </style>
     </head>
     <body>
       <div class="container">
 
+        <!-- Logo Header -->
         <div class="header">
           <img class="logo" src="${window.location.origin}/logo.jpeg" />
         </div>
 
+        <!-- Title -->
         <div class="title">Tax Invoice</div>
 
+        <!-- Bill To + Invoice Details -->
         <div class="top-section">
           <div class="bill-to">
             <h3>Bill To</h3>
@@ -356,6 +401,7 @@ export function InvoicesContent() {
           </div>
         </div>
 
+        <!-- Items Table -->
         <table>
           <tr>
             <th>#</th>
@@ -375,40 +421,43 @@ export function InvoicesContent() {
           </tr>
         </table>
 
-        <div class="summary-section">
-          <div class="terms">
-            <h3>Invoice Amount In Words</h3>
-            <p>₹ ${Number(inv.amount).toLocaleString()} Rupees only</p>
-            <br/>
-            <h3>Terms and Conditions</h3>
-            <p>1. ONCE FEES PAID, CAN'T BE REFUND, TRANSFER OR ADJUSTED UNDER ANY CIRCUMSTANCES.</p>
-            <p>2. FEES MUST BE PAID ON DUE DATE TO AVOID ADMISSION CANCELLATION.</p>
-            <p>Thank You !</p>
-            <p>MERIT HOME LEARNING CENTRE</p>
+        <!-- Totals -->
+        <table class="summary-table">
+          <tr class="total-row"><td>Total</td><td>₹ ${Number(inv.amount).toLocaleString()}</td></tr>
+          <tr><td>Received</td><td>₹ ${Number(inv.paid_amount).toLocaleString()}</td></tr>
+          <tr><td>Balance</td><td>₹ ${balance.toLocaleString()}</td></tr>
+        </table>
+
+        <!-- Payment QR | OR | Bank Details | Signature -->
+        <div class="payment-signature">
+          <div class="payment">
+            <p><b>Scan & Pay (UPI)</b></p>
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=upi://pay?pa=9511646082@sbi&pn=MERIT%20HOME%20LEARNING%20CENTRE&am=${inv.amount}&cu=INR" />
           </div>
-          <div class="summary">
-            <table>
-              <tr class="total-row"><td>Total</td><td>₹ ${Number(inv.amount).toLocaleString()}</td></tr>
-              <tr><td>Received</td><td>₹ ${Number(inv.paid_amount).toLocaleString()}</td></tr>
-              <tr><td>Balance</td><td>₹ ${balance.toLocaleString()}</td></tr>
-            </table>
+
+          <div class="or-divider">— OR —</div>
+
+          <div class="bank-details">
+            <p><b>Pay To (Bank Transfer):</b></p>
+            <p>Bank Name : SBI BANK</p>
+            <p>Account No. : 43064858046</p>
+            <p>IFSC Code : SBIN015706</p>
+            <p>Account Name : MERIT HOME LEARNING CENTRE</p>
+          </div>
+
+          <div class="signature">
+            <p>For : MERIT HOME LEARNING CENTRE</p>
+            <img src="${window.location.origin}/sign.png" />
+            <div class="auth">Authorized Signatory</div>
           </div>
         </div>
 
-        <div class="payment-signature">
-          <div class="payment">
-            <p><b>Pay To:</b></p>
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=upi://pay?pa=9511646082@sbi&pn=MERIT%20HOME%20LEARNING%20CENTRE&am=${inv.amount}&cu=INR" />
-            <p>Bank Name : SBI BANK</p>
-            <p>Bank Account No. : 43064858046</p>
-            <p>Bank IFSC code : SBIN015706</p>
-            <p>Account holder's name : MERIT HOME LEARNING CENTRE</p>
-          </div>
-          <div class="signature">
-            <p>For : MERIT HOME LEARNING CENTRE</p>
-           
-            <div class="auth">Authorized Signatory</div>
-          </div>
+        <!-- Terms & Conditions -->
+        <div class="terms">
+          <h3>Terms and Conditions</h3>
+          <p>1. ONCE FEES PAID, CAN'T BE REFUND, TRANSFER OR ADJUSTED UNDER ANY CIRCUMSTANCES.</p>
+          <p>2. FEES MUST BE PAID ON DUE DATE TO AVOID ADMISSION CANCELLATION.</p>
+          <p style="margin-top: 4px;">Thank You! &nbsp;—&nbsp; MERIT HOME LEARNING CENTRE</p>
         </div>
 
       </div>
