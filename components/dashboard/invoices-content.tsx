@@ -324,7 +324,7 @@ const handlePrint = async (inv: Invoice) => {
           padding-bottom: 5px;
           flex-shrink: 0;
         }
-        .logo { width: 100%; height: 100px; object-fit: cover; display: block; }
+        .logo { width: 100%; height: 200px; object-fit: cover; display: block; }
 
         /* ── Title ── */
         .title {
