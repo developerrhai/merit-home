@@ -270,7 +270,7 @@ export function InvoicesContent() {
     try { await invoicesApi.remove(id); load() } catch (err: any) { alert(err.message) }
   }
 
- const handlePrint = async (inv: Invoice) => {
+const handlePrint = async (inv: Invoice) => {
     let studentPhone = inv.student_phone || ""
     let standard     = inv.standard      || ""
 
@@ -286,7 +286,6 @@ export function InvoicesContent() {
     }
 
     const paidDate = inv.paid_date || inv.install_date || ""
-
     const today = new Date().toLocaleDateString("en-IN", {
       day: "2-digit", month: "2-digit", year: "numeric"
     })
@@ -300,115 +299,235 @@ export function InvoicesContent() {
     <head>
       <title>Invoice #${inv.id}</title>
       <style>
-        @page { size: A4; margin: 20mm; }
-        body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #000; }
-        .container { width: 100%; }
-        .header { width: 100%; border-bottom: 2px solid #0b7db7; padding-bottom: 10px; }
-        .logo { width: 100%; max-height: 160px; object-fit: cover; display: block; }
-        .title { text-align: center; color: #0b7db7; font-size: 34px; font-weight: bold; margin: 18px 0; }
-        .top-section { display: flex; justify-content: space-between; margin-top: 20px; }
-        .bill-to h3, .invoice-details h3 { margin-bottom: 10px; font-size: 18px; }
-        .bill-to p, .invoice-details p { margin: 6px 0; font-size: 15px; }
+        @page { size: A4; margin: 0; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { width: 210mm; height: 297mm; }
+        body {
+          font-family: Arial, Helvetica, sans-serif;
+          color: #000;
+          font-size: 11px;
+          line-height: 1.4;
+        }
+
+        .page {
+          width: 210mm;
+          height: 297mm;
+          padding: 8mm 12mm;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+        }
+
+        /* ── Header ── */
+        .header {
+          border-bottom: 3px solid #0b7db7;
+          padding-bottom: 5px;
+          flex-shrink: 0;
+        }
+        .logo { width: 100%; height: 100px; object-fit: cover; display: block; }
+
+        /* ── Title ── */
+        .title {
+          text-align: center;
+          color: #0b7db7;
+          font-size: 22px;
+          font-weight: bold;
+          padding: 8px 0 6px;
+          flex-shrink: 0;
+        }
+
+        /* ── Bill To + Invoice Details ── */
+        .top-section {
+          display: flex;
+          justify-content: space-between;
+          padding: 6px 0;
+          border-top: 1px solid #e0e0e0;
+          border-bottom: 1px solid #e0e0e0;
+          flex-shrink: 0;
+        }
+        .bill-to h3, .invoice-details h3 {
+          font-size: 12px;
+          color: #0b7db7;
+          margin-bottom: 5px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        .bill-to p, .invoice-details p { font-size: 11px; margin: 3px 0; }
         .invoice-details { text-align: right; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th { background: #0b7db7; color: #fff; padding: 10px; font-size: 14px; text-align: left; }
-        td { padding: 10px; border-bottom: 1px solid #ccc; font-size: 14px; }
+
+        /* ── Items Table ── */
+        .table-wrap { flex-shrink: 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        th {
+          background: #0b7db7;
+          color: #fff;
+          padding: 7px 8px;
+          font-size: 11px;
+          text-align: left;
+        }
+        td { padding: 7px 8px; border-bottom: 1px solid #e8e8e8; font-size: 11px; }
         td:last-child, th:last-child { text-align: right; }
-        .summary-section { display: flex; justify-content: space-between; margin-top: 30px; }
-        .terms { width: 48%; }
-        .terms h3 { margin-bottom: 10px; }
-        .terms p { margin: 6px 0; font-size: 14px; }
-        .summary { width: 40%; }
-        .summary table { margin-top: 0; }
-        .summary td { border: none; padding: 8px 0; }
-        .total-row { background: #0b7db7; color: #fff; font-weight: bold; }
-        .payment-signature { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 50px; }
-        .payment { width: 45%; }
-        .payment img { width: 140px; margin-top: 10px; }
-        .payment p { margin: 5px 0; font-size: 14px; }
-        .signature { width: 40%; text-align: center; }
-        .signature img { width: 140px; margin-top: 20px; }
-        .signature p { margin: 5px 0; }
-        .auth { margin-top: 10px; font-weight: bold; }
+        tr:nth-child(even) td { background: #f7fbff; }
+
+        /* ── Summary ── */
+        .summary-wrap {
+          display: flex;
+          justify-content: flex-end;
+          margin-top: 8px;
+          flex-shrink: 0;
+        }
+        .summary-table { width: 42%; border-collapse: collapse; }
+        .summary-table td { padding: 5px 10px; font-size: 11px; border: none; }
+        .summary-table td:last-child { text-align: right; }
+        .total-row td { background: #0b7db7; color: #fff; font-weight: bold; font-size: 12px; }
+        .summary-table tr:not(.total-row) td { background: #f0f7ff; }
+
+        /* ── Payment + Signature (flex-grow fills remaining space) ── */
+        .payment-signature {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-grow: 1;
+          padding: 10px 0 4px;
+          border-top: 1px solid #e0e0e0;
+          margin-top: 8px;
+          gap: 8px;
+        }
+
+        .payment { display: flex; flex-direction: column; align-items: center; width: 28%; }
+        .payment p { font-size: 10px; margin-bottom: 5px; font-weight: bold; text-align: center; }
+        .payment img { width: 110px; height: 110px; }
+
+        .or-divider {
+          font-size: 14px;
+          font-weight: bold;
+          color: #888;
+          text-align: center;
+          width: 8%;
+        }
+
+        .bank-details { width: 30%; }
+        .bank-details p { margin: 4px 0; font-size: 10.5px; }
+        .bank-details .bank-title { font-weight: bold; font-size: 11px; color: #0b7db7; margin-bottom: 6px; }
+
+        .signature {
+          width: 28%;
+          text-align: center;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: flex-end;
+        }
+        .signature p { font-size: 10px; margin-bottom: 4px; }
+        .signature img { width: 110px; }
+        .auth { font-weight: bold; font-size: 11px; margin-top: 4px; }
+        .sig-line { width: 100%; border-top: 1px solid #000; margin-top: 6px; padding-top: 4px; }
+
+        /* ── Terms ── */
+        .terms {
+          border-top: 2px solid #0b7db7;
+          padding-top: 7px;
+          flex-shrink: 0;
+        }
+        .terms h3 { font-size: 11px; color: #0b7db7; margin-bottom: 5px; text-transform: uppercase; }
+        .terms p { font-size: 10px; margin: 2px 0; color: #333; }
+        .terms .thankyou { margin-top: 5px; font-weight: bold; font-size: 10.5px; text-align: center; }
       </style>
     </head>
     <body>
-      <div class="container">
+      <div class="page">
 
+        <!-- 1. Logo -->
         <div class="header">
           <img class="logo" src="${window.location.origin}/logo.jpeg" />
         </div>
 
+        <!-- 2. Title -->
         <div class="title">Tax Invoice</div>
 
+        <!-- 3. Bill To + Invoice Details -->
         <div class="top-section">
           <div class="bill-to">
             <h3>Bill To</h3>
             <p><b>${inv.student_name}</b></p>
-            <p>Contact No. : ${studentPhone || "-"}</p>
-            <p>Student ID : ${inv.student_id || "-"}</p>
-            <p>Standard : ${standard || "-"}</p>
+            <p>Contact No. &nbsp;: ${studentPhone || "-"}</p>
+            <p>Student ID &nbsp;&nbsp;: ${inv.student_id || "-"}</p>
+            <p>Standard &nbsp;&nbsp;&nbsp;: ${standard || "-"}</p>
           </div>
           <div class="invoice-details">
             <h3>Invoice Details</h3>
-            <p>Invoice No. : INV${String(inv.id).padStart(4, "0")}</p>
-            <p>Date : ${today}</p>
+            <p>Invoice No. : <b>INV${String(inv.id).padStart(4, "0")}</b></p>
+            <p>Date &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: <b>${today}</b></p>
           </div>
         </div>
 
-        <table>
-          <tr>
-            <th>Sr No.</th>
-            <th>Course Name</th>
-            <th>Due Date</th>
-            <th>Paid Date</th>
-            <th>Transaction Type</th>
-            <th>Amount</th>
-          </tr>
-          <tr>
-            <td>1</td>
-            <td>${inv.description || inv.course || "Course Fees"}</td>
-            <td>${fmtDate(inv.due_date)}</td>
-            <td>${fmtDate(paidDate)}</td>
-            <td>${inv.transaction_type || "Online"}</td>
-            <td>₹ ${Number(inv.amount).toLocaleString()}</td>
-          </tr>
-        </table>
-
-        <div class="summary-section">
-          <div class="terms">
-            <h3>Invoice Amount In Words</h3>
-            <p>₹ ${Number(inv.amount).toLocaleString()} Rupees only</p>
-            <br/>
-            <h3>Terms and Conditions</h3>
-            <p>1. ONCE FEES PAID, CAN'T BE REFUND, TRANSFER OR ADJUSTED UNDER ANY CIRCUMSTANCES.</p>
-            <p>2. FEES MUST BE PAID ON DUE DATE TO AVOID ADMISSION CANCELLATION.</p>
-            <p>Thank You !</p>
-            <p>MERIT HOME LEARNING CENTRE</p>
-          </div>
-          <div class="summary">
-            <table>
-              <tr class="total-row"><td>Total</td><td>₹ ${Number(inv.amount).toLocaleString()}</td></tr>
-              <tr><td>Received</td><td>₹ ${Number(inv.paid_amount).toLocaleString()}</td></tr>
-              <tr><td>Balance</td><td>₹ ${balance.toLocaleString()}</td></tr>
-            </table>
-          </div>
+        <!-- 4. Items Table -->
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Course / Description</th>
+                <th>Due Date</th>
+                <th>Paid Date</th>
+                <th>Transaction</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>1</td>
+                <td>${inv.description || inv.course || "Course Fees"}</td>
+                <td>${fmtDate(inv.due_date)}</td>
+                <td>${fmtDate(paidDate)}</td>
+                <td>${inv.transaction_type || "Online"}</td>
+                <td>₹ ${Number(inv.amount).toLocaleString()}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
+        <!-- 5. Summary -->
+        <div class="summary-wrap">
+          <table class="summary-table">
+            <tr class="total-row"><td>Total Amount</td><td>₹ ${Number(inv.amount).toLocaleString()}</td></tr>
+            <tr><td>Amount Received</td><td>₹ ${Number(inv.paid_amount).toLocaleString()}</td></tr>
+            <tr><td>Balance Due</td><td>₹ ${balance.toLocaleString()}</td></tr>
+          </table>
+        </div>
+
+        <!-- 6. QR | OR | Bank | Signature -->
         <div class="payment-signature">
           <div class="payment">
-            <p><b>Pay To:</b></p>
+            <p>📱 Scan &amp; Pay via UPI</p>
             <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=upi://pay?pa=9511646082@sbi&pn=MERIT%20HOME%20LEARNING%20CENTRE&am=${inv.amount}&cu=INR" />
-            <p>Bank Name : SBI BANK</p>
-            <p>Bank Account No. : 43064858046</p>
-            <p>Bank IFSC code : SBIN015706</p>
-            <p>Account holder's name : MERIT HOME LEARNING CENTRE</p>
           </div>
+
+          <div class="or-divider">—<br/>OR<br/>—</div>
+
+          <div class="bank-details">
+            <p class="bank-title">🏦 Bank Transfer Details</p>
+            <p>Bank Name &nbsp;&nbsp;&nbsp;: SBI BANK</p>
+            <p>Account No. &nbsp;: 43064858046</p>
+            <p>IFSC Code &nbsp;&nbsp;&nbsp;: SBIN015706</p>
+            <p>Account Name : MERIT HOME LEARNING CENTRE</p>
+          </div>
+
           <div class="signature">
             <p>For : MERIT HOME LEARNING CENTRE</p>
-           
-            <div class="auth">Authorized Signatory</div>
+            <img src="${window.location.origin}/sign.png" />
+            <div class="sig-line">
+              <div class="auth">Authorized Signatory</div>
+            </div>
           </div>
+        </div>
+
+        <!-- 7. Terms -->
+        <div class="terms">
+          <h3>Terms &amp; Conditions</h3>
+          <p>1. ONCE FEES PAID, CANNOT BE REFUNDED, TRANSFERRED OR ADJUSTED UNDER ANY CIRCUMSTANCES.</p>
+          <p>2. FEES MUST BE PAID ON THE DUE DATE TO AVOID ADMISSION CANCELLATION.</p>
+          <p class="thankyou">Thank You for choosing Merit Home Learning Centre !</p>
         </div>
 
       </div>
