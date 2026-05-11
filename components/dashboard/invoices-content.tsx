@@ -270,11 +270,10 @@ export function InvoicesContent() {
     try { await invoicesApi.remove(id); load() } catch (err: any) { alert(err.message) }
   }
 
-  const handlePrint = async (inv: Invoice) => {
+ const handlePrint = async (inv: Invoice) => {
     let studentPhone = inv.student_phone || ""
     let standard     = inv.standard      || ""
 
-    // Fetch phone + standard from students table if missing
     if ((!studentPhone || !standard) && inv.student_id) {
       try {
         const res: any = await studentsApi.getAll({ search: inv.student_name })
@@ -286,7 +285,6 @@ export function InvoicesContent() {
       } catch { /* fallback */ }
     }
 
-    // Paid date: prefer paid_date, fall back to install_date
     const paidDate = inv.paid_date || inv.install_date || ""
 
     const today = new Date().toLocaleDateString("en-IN", {
@@ -305,10 +303,8 @@ export function InvoicesContent() {
         @page { size: A4; margin: 20mm; }
         body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #000; }
         .container { width: 100%; }
-        .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0b7db7; padding-bottom: 10px; }
-        .company h2 { margin: 0; font-size: 30px; font-weight: 700; }
-        .company p { margin: 4px 0; font-size: 14px; }
-        .logo { width: 150px; height: 150px; object-fit: contain; }
+        .header { width: 100%; border-bottom: 2px solid #0b7db7; padding-bottom: 10px; }
+        .logo { width: 100%; max-height: 160px; object-fit: cover; display: block; }
         .title { text-align: center; color: #0b7db7; font-size: 34px; font-weight: bold; margin: 18px 0; }
         .top-section { display: flex; justify-content: space-between; margin-top: 20px; }
         .bill-to h3, .invoice-details h3 { margin-bottom: 10px; font-size: 18px; }
@@ -340,13 +336,6 @@ export function InvoicesContent() {
       <div class="container">
 
         <div class="header">
-          <div class="company">
-            <h2>MERIT HOME LEARNING CENTRE</h2>
-            <p>201/A, New Excelsior Building, Khadki Bazar, Khadki, Pune</p>
-            <p>Phone no : 9511646082</p>
-            <p>Email : info@merithome.in</p>
-            <p>State: 27-Maharashtra</p>
-          </div>
           <img class="logo" src="${window.location.origin}/logo.jpeg" />
         </div>
 
