@@ -406,7 +406,7 @@ export function InvoicesContent() {
           </div>
           <div class="signature">
             <p>For : MERIT HOME LEARNING CENTRE</p>
-            <img src="${window.location.origin}/sign.png" />
+           
             <div class="auth">Authorized Signatory</div>
           </div>
         </div>
@@ -418,6 +418,7 @@ export function InvoicesContent() {
     w.document.close()
     w.print()
   }
+  //  <img src="${window.location.origin}/sign.png" />
 
   const handleWhatsAppShare = (inv: Invoice) => {
     const invoiceNo = `INV${String(inv.id).padStart(3, "0")}`
