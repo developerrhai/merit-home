@@ -508,7 +508,7 @@ const handlePrint = async (inv: Invoice) => {
           <div class="bank-details">
             <p class="bank-title">🏦 Bank Transfer Details</p>
             <p>Bank Name &nbsp;&nbsp;&nbsp;: SBI BANK</p>
-            <p>Account No. &nbsp;: 43064858046</p>
+            <p>Account No. &nbsp;: 2602421712535347</p>
             <p>IFSC Code &nbsp;&nbsp;&nbsp;: SBIN015706</p>
             <p>Account Name : MERIT HOME LEARNING CENTRE</p>
           </div>
