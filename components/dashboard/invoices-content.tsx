@@ -513,7 +513,6 @@ const handlePrint = async (inv: Invoice) => {
             <p>Account No. &nbsp;&nbsp;: 2602421712535347</p>
             <p>Account Type &nbsp;: CURRENT</p>
             <p>RTGS/NEFT IFSC : AUBL0004217</p>
-            <p style="margin-top:6px; font-size:10px; color:#555;">Address : CTS NO. 731, GAWADE COMPLEX</p>
             <p style="font-size:10px; color:#555;">Branches : Chinchwad | Wakad | Thergaon</p>
           </div>
 
@@ -542,6 +541,7 @@ const handlePrint = async (inv: Invoice) => {
   }
 
   //  <img src="${window.location.origin}/sign.png" />
+  // <p style="margin-top:6px; font-size:10px; color:#555;">Address : CTS NO. 731, GAWADE COMPLEX</p>
 
   const handleWhatsAppShare = (inv: Invoice) => {
     const invoiceNo = `INV${String(inv.id).padStart(3, "0")}`
