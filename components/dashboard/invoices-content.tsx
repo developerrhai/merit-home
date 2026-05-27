@@ -174,33 +174,65 @@ export function InvoicesContent() {
   }
 
   const handleSave = async () => {
-    if (!form.student_name || !form.amount || !form.due_date) {
-      alert("Fill required fields"); return
-    }
-    setSaving(true)
-    try {
-      const payload = {
-        student_name:     form.student_name,
-        student_id:       form.student_id || undefined,
-        amount:           parseFloat(form.amount),
-        paid_amount:      parseFloat(form.paid_amount) || 0,
-        due_date:         form.due_date,
-        install_date:     form.install_date || undefined,
-        paid_date:        form.paid_date || undefined,
-        transaction_type: form.transaction_type,
-        description:      form.description,
-      }
-      if (editing) {
-        await invoicesApi.update(editing.id, payload)
-      } else {
-        await invoicesApi.create(payload)
-      }
-      setModalOpen(false)
-      setEditing(null)
-      load()
-    } catch (err: any) { alert(err.message) }
-    finally { setSaving(false) }
+  if (!form.student_name || !form.amount || !form.due_date) {
+    alert("Fill required fields"); return
   }
+  setSaving(true)
+  try {
+    const payload = {
+      student_name:     form.student_name,
+      student_id:       form.student_id || undefined,
+      amount:           parseFloat(form.amount),
+      paid_amount:      parseFloat(form.paid_amount) || 0,
+      due_date:         form.due_date,
+      install_date:     form.install_date || undefined,
+      paid_date:        form.paid_date || undefined,
+      transaction_type: form.transaction_type,
+      description:      form.description,
+    }
+
+    if (editing) {
+      await invoicesApi.update(editing.id, payload)
+    } else {
+      await invoicesApi.create(payload)
+    }
+
+    // ── Sync paid_fee back to the student record ──────────────
+     if (form.student_id && payload.paid_amount > 0) {
+      try {
+        // Sum ALL invoices for this student so paid_fee is always the total
+        const allInvoices: any = await invoicesApi.getAll({})
+        const totalPaid = (allInvoices.data || [])
+          .filter((inv: any) => String(inv.student_id) === String(form.student_id))
+          .reduce((sum: number, inv: any) => sum + Number(inv.paid_amount || 0), 0)
+
+        const res: any = await studentsApi.getAll({ search: form.student_name })
+        const match = (res.data || []).find(
+          (s: any) => String(s.id) === String(form.student_id)
+        )
+
+        if (match) {
+          await studentsApi.update(match.id, {
+            ...match,
+            paid_fee: totalPaid,
+            subjects: Array.isArray(match.subjects)
+              ? match.subjects.join(",")
+              : match.subjects || "",
+          })
+        }
+      } catch (syncErr) {
+        console.warn("Student paid_fee sync failed:", syncErr)
+        // Non-fatal — invoice was saved; just log the sync failure
+      }
+    }
+    // ─────────────────────────────────────────────────────────
+
+    setModalOpen(false)
+    setEditing(null)
+    load()
+  } catch (err: any) { alert(err.message) }
+  finally { setSaving(false) }
+}
 
   const openEdit = (inv: Invoice) => {
     setEditing(inv)
