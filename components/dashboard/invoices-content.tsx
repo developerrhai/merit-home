@@ -442,7 +442,7 @@ const handlePrint = async (inv: Invoice) => {
           <img class="logo" src="/logo.jpeg" />
         </div>
 
-        <!-- 2. Title -->
+        <!-- 2. Title --> 
         <div class="title">Fees Receipt</div>
 
         <!-- 3. Bill To + Invoice Details -->
@@ -513,7 +513,7 @@ const handlePrint = async (inv: Invoice) => {
             <p>Account No. &nbsp;&nbsp;: 2602421712535347</p>
             <p>Account Type &nbsp;: CURRENT</p>
             <p>RTGS/NEFT IFSC : AUBL0004217</p>
-            <p style="font-size:10px; color:#555;">Branches : Chinchwad | Wakad | Thergaon</p>
+            <p style="font-size:10px; color:#000;">Branches : Chinchwad | Wakad | Thergaon</p>
           </div>
 
           <div class="signature">
