@@ -500,7 +500,7 @@ const handlePrint = async (inv: Invoice) => {
         <div class="payment-signature">
           <div class="payment">
             <p>📱 Scan &amp; Pay via UPI</p>
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=upi://pay?pa=9511646082@sbi&pn=MERIT%20HOME%20LEARNING%20CENTRE&am=${inv.amount}&cu=INR" />
+            <img src="qr.jpeg" />
           </div>
 
           <div class="or-divider">—<br/>OR<br/>—</div>
