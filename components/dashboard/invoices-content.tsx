@@ -145,7 +145,7 @@ export function InvoicesContent() {
       student_name: s.name,
       student_id:   String(s.id),
       amount:       remaining > 0 ? String(remaining) : String(s.fee),
-      paid_amount:  "0",
+      paid_amount:  String(s.paid_fee ?? 0),
       description:  `Tuition Fee – ${s.course || s.standard + "th Std"}`,
     }))
   }
