@@ -519,7 +519,6 @@ const handlePrint = async (inv: Invoice) => {
 
           <div class="signature">
             <p>For : MERITHOME EDUCATION PRIVATE LIMITED</p>
-            <img src="${window.location.origin}/sign.png" />
             <div class="sig-line">
               <div class="auth">Authorized Signatory</div>
             </div>
@@ -541,6 +540,8 @@ const handlePrint = async (inv: Invoice) => {
     w.document.close()
     w.print()
   }
+
+  //  <img src="${window.location.origin}/sign.png" />
 
   const handleWhatsAppShare = (inv: Invoice) => {
     const invoiceNo = `INV${String(inv.id).padStart(3, "0")}`
