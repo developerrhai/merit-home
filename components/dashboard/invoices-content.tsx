@@ -499,22 +499,26 @@ const handlePrint = async (inv: Invoice) => {
         <!-- 6. QR | OR | Bank | Signature -->
         <div class="payment-signature">
           <div class="payment">
-            <p>📱 Scan &amp; Pay via UPI</p>
-            <img src="qr.jpeg" />
+            <p>Scan &amp; Pay via UPI</p>
+            <img src="${window.location.origin}/qr.jpeg" />
           </div>
 
           <div class="or-divider">—<br/>OR<br/>—</div>
 
+          <!-- ✅ UPDATED: Bank details for MERITHOME EDUCATION PRIVATE LIMITED -->
           <div class="bank-details">
-            <p class="bank-title">🏦 Bank Transfer Details</p>
-            <p>Bank Name &nbsp;&nbsp;&nbsp;: SBI BANK</p>
-            <p>Account No. &nbsp;: 2602421712535347</p>
-            <p>IFSC Code &nbsp;&nbsp;&nbsp;: SBIN015706</p>
-            <p>Account Name : MERIT HOME LEARNING CENTRE</p>
+            <p class="bank-title">Bank Transfer Details</p>
+            <p>Bank Name &nbsp;&nbsp;&nbsp;&nbsp;: AU SMALL FINANCE BANK</p>
+            <p>Account Name &nbsp;: MERITHOME EDUCATION PRIVATE LIMITED</p>
+            <p>Account No. &nbsp;&nbsp;: 2602421712535347</p>
+            <p>Account Type &nbsp;: CURRENT</p>
+            <p>RTGS/NEFT IFSC : AUBL0004217</p>
+            <p style="margin-top:6px; font-size:10px; color:#555;">Address : CTS NO. 731, GAWADE COMPLEX</p>
+            <p style="font-size:10px; color:#555;">Branches : Chinchwad | Wakad | Thergaon</p>
           </div>
 
           <div class="signature">
-            <p>For : MERIT HOME LEARNING CENTRE</p>
+            <p>For : MERITHOME EDUCATION PRIVATE LIMITED</p>
             <img src="${window.location.origin}/sign.png" />
             <div class="sig-line">
               <div class="auth">Authorized Signatory</div>
@@ -526,8 +530,8 @@ const handlePrint = async (inv: Invoice) => {
         <div class="terms">
           <h3>Terms &amp; Conditions</h3>
           <p>1. ONCE FEES PAID, CANNOT BE REFUNDED, TRANSFERRED OR ADJUSTED UNDER ANY CIRCUMSTANCES.</p>
-          <p>2. FEES MUST BE PAID ON THE DUE DATE TO AVOID ADMISSION CANCELLATION.</p>
-          <p class="thankyou">Thank You for choosing Merit Home Learning Centre !</p>
+          <p>2. FEES PAID MUST BE ON THE DUE DATE TO AVOID ADMISSION CANCELLATION.</p>
+          <p class="thankyou">Thank You for choosing MeritHome Education Private Limited !</p>
         </div>
 
       </div>
@@ -537,7 +541,6 @@ const handlePrint = async (inv: Invoice) => {
     w.document.close()
     w.print()
   }
-  //  <img src="${window.location.origin}/sign.png" />
 
   const handleWhatsAppShare = (inv: Invoice) => {
     const invoiceNo = `INV${String(inv.id).padStart(3, "0")}`
@@ -718,7 +721,7 @@ const handlePrint = async (inv: Invoice) => {
                       {selectedStudent.location && ` · ${selectedStudent.location}`}
                     </p>
                     <p className="text-xs text-emerald-600">
-                      📞 {selectedStudent.phone}
+                      {selectedStudent.phone}
                       {selectedStudent.fee > 0 && (
                         <span className="ml-2">
                           · Fee: ₹{Number(selectedStudent.fee).toLocaleString()}
@@ -849,7 +852,7 @@ const handlePrint = async (inv: Invoice) => {
             return (
               <div className="space-y-3">
                 <div className="text-center pb-4 border-b">
-                  <h3 className="text-lg font-bold text-blue-600">Merit Home Learning Centre</h3>
+                  <h3 className="text-lg font-bold text-blue-600">MeritHome Education Private Limited</h3>
                   <p className="text-muted-foreground">Invoice #INV{String(selected.id).padStart(3, "0")}</p>
                 </div>
                 {([
