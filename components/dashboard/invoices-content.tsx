@@ -513,7 +513,7 @@ const handlePrint = async (inv: Invoice) => {
             <p>Account No. &nbsp;&nbsp;: 2602421712535347</p>
             <p>Account Type &nbsp;: CURRENT</p>
             <p>RTGS/NEFT IFSC : AUBL0004217</p>
-            <p style="font-size:10px; color:#000;">Branches : Chinchwad | Wakad | Thergaon</p>
+            <p style="font-size:12px; color:#000;">Branches : Chinchwad | Wakad | Thergaon</p>
           </div>
 
           <div class="signature">
