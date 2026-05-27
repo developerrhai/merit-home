@@ -443,7 +443,7 @@ const handlePrint = async (inv: Invoice) => {
         </div>
 
         <!-- 2. Title -->
-        <div class="title">Tax Invoice</div>
+        <div class="title">Fees Receipt</div>
 
         <!-- 3. Bill To + Invoice Details -->
         <div class="top-section">
