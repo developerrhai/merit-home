@@ -532,7 +532,7 @@ const handlePrint = async (inv: Invoice) => {
         <div class="payment-signature">
           <div class="payment">
             <p>Scan &amp; Pay via UPI</p>
-            <img style="width: 100px;height:100px;" src="/qr.jpeg" />
+            <img style="width: 150px;height:150px;" src="/qr.jpeg" />
           </div>
 
           <div class="or-divider">—<br/>OR<br/>—</div>
