@@ -182,7 +182,7 @@ export function StudentsContent() {
     return ""
   }
 
-  const handleImportExcel = async (event: React.ChangeEvent<HTMLInputElement>) => {
+ const handleImportExcel = async (event: React.ChangeEvent<HTMLInputElement>) => {
   const file = event.target.files?.[0]
   if (!file) return
   setImporting(true)
@@ -221,32 +221,34 @@ export function StudentsContent() {
 
     if (!payloads.length) { alert("No valid student rows found. Add at least a Name column."); return }
 
-    // ── Build a lookup set from existing students ──────────────────
-    // Key: lowercase "name|phone" — matches even if phone is missing on both sides
+    // ── Build lookup set from already-loaded students ──────────────
+    // Key: "name|phone" (both lowercased/trimmed) — matches existing records
     const existingKeys = new Set(
       students.map(s =>
         `${s.name.trim().toLowerCase()}|${String(s.phone || "").trim()}`
       )
     )
 
-    // ── Partition into new vs duplicate ───────────────────────────
+    // ── Split into new vs duplicate ────────────────────────────────
     const toInsert: Array<Record<string, unknown>> = []
-    const duplicates: string[] = []
+    const skipped:  string[] = []
 
     for (const p of payloads) {
-      const key = `${String(p.name).toLowerCase()}|${String(p.phone || "").trim()}`
+      const key = `${String(p.name).trim().toLowerCase()}|${String(p.phone || "").trim()}`
       if (existingKeys.has(key)) {
-        duplicates.push(String(p.name))
+        // Already exists — skip this row
+        skipped.push(String(p.name))
       } else {
+        // New student — queue for insert
         toInsert.push(p)
-        // Optimistically add to the set so duplicate rows inside the
-        // same Excel file are also caught (e.g. the same student listed twice)
+        // Add to set immediately so duplicate rows WITHIN the same
+        // Excel file are also caught (e.g. same student listed twice)
         existingKeys.add(key)
       }
     }
 
     if (!toInsert.length) {
-      alert(`All ${duplicates.length} rows already exist — nothing imported.`)
+      alert(`Nothing imported — all ${skipped.length} rows already exist in the system.`)
       return
     }
 
@@ -257,16 +259,18 @@ export function StudentsContent() {
 
     await load()
 
+    // ── Clear & show summary ───────────────────────────────────────
     const parts: string[] = []
-    if (ok)             parts.push(`${ok} student${ok > 1 ? "s" : ""} imported`)
-    if (bad)            parts.push(`${bad} failed`)
-    if (duplicates.length) parts.push(`${duplicates.length} skipped (duplicate)`)
-    alert(parts.join(" · ") + ".")
+    if (ok)           parts.push(`✅ ${ok} student${ok !== 1 ? "s" : ""} imported`)
+    if (bad)          parts.push(`❌ ${bad} failed`)
+    if (skipped.length) parts.push(`⚠️ ${skipped.length} skipped (duplicate)`)
+    alert(parts.join("\n"))
 
   } catch (err: any) {
     alert(err.message || "Failed to import Excel file")
   } finally {
-    setImporting(false); event.target.value = ""
+    setImporting(false)
+    event.target.value = ""
   }
 }
   // ── Subject toggle (used in view modal edit — inline state) ──
