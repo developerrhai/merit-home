@@ -481,6 +481,7 @@ const handlePrint = async (inv: Invoice) => {
         <div class="top-section">
           <div class="bill-to">
             <h3>Bill To</h3>
+            <p style="font-size:12px; color:#000;">Branches : Chinchwad | Wakad | Thergaon</p>
             <p><b>${inv.student_name}</b></p>
             <p>Contact No. &nbsp;: ${studentPhone || "-"}</p>
             <p>Student ID &nbsp;&nbsp;: ${inv.student_id || "-"}</p>
@@ -545,7 +546,6 @@ const handlePrint = async (inv: Invoice) => {
             <p>Account No. &nbsp;&nbsp;: 2602421712535347</p>
             <p>Account Type &nbsp;: CURRENT</p>
             <p>RTGS/NEFT IFSC : AUBL0004217</p>
-            <p style="font-size:12px; color:#000;">Branches : Chinchwad | Wakad | Thergaon</p>
           </div>
 
           <div class="signature">
