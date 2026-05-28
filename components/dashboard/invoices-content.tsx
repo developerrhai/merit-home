@@ -356,7 +356,7 @@ const handlePrint = async (inv: Invoice) => {
           padding-bottom: 5px;
           flex-shrink: 0;
         }
-        .logo { width: 100%; height: 300px; object-fit: cover; display: block; }
+        .logo { width: 100%; height: 250px; object-fit: cover; display: block; }
 
         /* ── Title ── */
         .title {
@@ -532,7 +532,7 @@ const handlePrint = async (inv: Invoice) => {
         <div class="payment-signature">
           <div class="payment">
             <p>Scan &amp; Pay via UPI</p>
-            <img src="/qr.jpeg" />
+            <img style="width: 100px;height:100px;" src="/qr.jpeg" />
           </div>
 
           <div class="or-divider">—<br/>OR<br/>—</div>
