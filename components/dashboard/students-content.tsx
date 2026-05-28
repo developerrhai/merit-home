@@ -183,56 +183,92 @@ export function StudentsContent() {
   }
 
   const handleImportExcel = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-    setImporting(true)
-    try {
-      const buffer   = await file.arrayBuffer()
-      const workbook = XLSX.read(buffer, { type: "array" })
-      const sheet    = workbook.Sheets[workbook.SheetNames[0]]
-      const rawRows  = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" })
-      if (!rawRows.length) { alert("Excel sheet is empty"); return }
+  const file = event.target.files?.[0]
+  if (!file) return
+  setImporting(true)
+  try {
+    const buffer   = await file.arrayBuffer()
+    const workbook = XLSX.read(buffer, { type: "array" })
+    const sheet    = workbook.Sheets[workbook.SheetNames[0]]
+    const rawRows  = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" })
+    if (!rawRows.length) { alert("Excel sheet is empty"); return }
 
-      const normalizedRows = rawRows.map(row => {
-        const next: Record<string, unknown> = {}
-        Object.entries(row).forEach(([k, v]) => { next[normalizeHeader(k)] = v })
-        return next
-      })
+    const normalizedRows = rawRows.map(row => {
+      const next: Record<string, unknown> = {}
+      Object.entries(row).forEach(([k, v]) => { next[normalizeHeader(k)] = v })
+      return next
+    })
 
-      const payloads = normalizedRows.map(row => {
-        const name = String(pickValue(row, ["name","student_name","student"])).trim()
-        if (!name) return null
-        return {
-          name,
-          email:        String(pickValue(row, ["email"])).trim(),
-          phone:        String(pickValue(row, ["phone","student_phone","mobile","contact"])).trim(),
-          father_name:  String(pickValue(row, ["father_name","parent_name","guardian_name"])).trim(),
-          father_phone: String(pickValue(row, ["father_phone","parent_phone","guardian_phone"])).trim(),
-          board:        String(pickValue(row, ["board"])).trim(),
-          standard:     String(pickValue(row, ["standard","std","class"])).trim(),
-          course:       String(pickValue(row, ["course","batch"])).trim(),
-          location:     String(pickValue(row, ["location","branch"])).trim(),
-          institute:    String(pickValue(row, ["institute","school","college"])).trim(),
-          subjects:     String(pickValue(row, ["subjects","subject"])).trim(),
-          fee:          Number(pickValue(row, ["fee","total_fee"])) || 0,
-          paid_fee:     Number(pickValue(row, ["paid_fee","paid","paidamount"])) || 0,
-        }
-      }).filter(Boolean) as Array<Record<string, unknown>>
+    const payloads = normalizedRows.map(row => {
+      const name = String(pickValue(row, ["name", "student_name", "student"])).trim()
+      if (!name) return null
+      return {
+        name,
+        email:        String(pickValue(row, ["email"])).trim(),
+        phone:        String(pickValue(row, ["phone", "student_phone", "mobile", "contact"])).trim(),
+        father_name:  String(pickValue(row, ["father_name", "parent_name", "guardian_name"])).trim(),
+        father_phone: String(pickValue(row, ["father_phone", "parent_phone", "guardian_phone"])).trim(),
+        board:        String(pickValue(row, ["board"])).trim(),
+        standard:     String(pickValue(row, ["standard", "std", "class"])).trim(),
+        course:       String(pickValue(row, ["course", "batch"])).trim(),
+        location:     String(pickValue(row, ["location", "branch"])).trim(),
+        institute:    String(pickValue(row, ["institute", "school", "college"])).trim(),
+        subjects:     String(pickValue(row, ["subjects", "subject"])).trim(),
+        fee:          Number(pickValue(row, ["fee", "total_fee"])) || 0,
+        paid_fee:     Number(pickValue(row, ["paid_fee", "paid", "paidamount"])) || 0,
+      }
+    }).filter(Boolean) as Array<Record<string, unknown>>
 
-      if (!payloads.length) { alert("No valid student rows found. Add at least a Name column."); return }
+    if (!payloads.length) { alert("No valid student rows found. Add at least a Name column."); return }
 
-      const results = await Promise.allSettled(payloads.map(p => studentsApi.create(p)))
-      const ok  = results.filter(r => r.status === "fulfilled").length
-      const bad = results.length - ok
-      await load()
-      alert(bad > 0 ? `${ok} imported, ${bad} failed.` : `${ok} students imported successfully.`)
-    } catch (err: any) {
-      alert(err.message || "Failed to import Excel file")
-    } finally {
-      setImporting(false); event.target.value = ""
+    // ── Build a lookup set from existing students ──────────────────
+    // Key: lowercase "name|phone" — matches even if phone is missing on both sides
+    const existingKeys = new Set(
+      students.map(s =>
+        `${s.name.trim().toLowerCase()}|${String(s.phone || "").trim()}`
+      )
+    )
+
+    // ── Partition into new vs duplicate ───────────────────────────
+    const toInsert: Array<Record<string, unknown>> = []
+    const duplicates: string[] = []
+
+    for (const p of payloads) {
+      const key = `${String(p.name).toLowerCase()}|${String(p.phone || "").trim()}`
+      if (existingKeys.has(key)) {
+        duplicates.push(String(p.name))
+      } else {
+        toInsert.push(p)
+        // Optimistically add to the set so duplicate rows inside the
+        // same Excel file are also caught (e.g. the same student listed twice)
+        existingKeys.add(key)
+      }
     }
-  }
 
+    if (!toInsert.length) {
+      alert(`All ${duplicates.length} rows already exist — nothing imported.`)
+      return
+    }
+
+    // ── Insert only the non-duplicates ─────────────────────────────
+    const results = await Promise.allSettled(toInsert.map(p => studentsApi.create(p)))
+    const ok  = results.filter(r => r.status === "fulfilled").length
+    const bad = results.length - ok
+
+    await load()
+
+    const parts: string[] = []
+    if (ok)             parts.push(`${ok} student${ok > 1 ? "s" : ""} imported`)
+    if (bad)            parts.push(`${bad} failed`)
+    if (duplicates.length) parts.push(`${duplicates.length} skipped (duplicate)`)
+    alert(parts.join(" · ") + ".")
+
+  } catch (err: any) {
+    alert(err.message || "Failed to import Excel file")
+  } finally {
+    setImporting(false); event.target.value = ""
+  }
+}
   // ── Subject toggle (used in view modal edit — inline state) ──
   // We keep a local edit state only for subjects inside the view modal
   const [editSubjects,    setEditSubjects]    = useState<string[]>([])
