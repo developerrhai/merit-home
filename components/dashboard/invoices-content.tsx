@@ -514,7 +514,7 @@ const handlePrint = async (inv: Invoice) => {
                 <td>${fmtDate(inv.due_date)}</td>
                 <td>${fmtDate(paidDate)}</td>
                 <td>${inv.transaction_type || "Online"}</td>
-                <td>₹ ${Number(inv.amount).toLocaleString()}</td>
+                <td>₹ ${Number(inv.paid_amount).toLocaleString()}</td>
               </tr>
             </tbody>
           </table>
