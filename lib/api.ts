@@ -154,8 +154,10 @@ export const inquiryExtraApi = {
   create: (payload: Record<string, unknown>) => post("/inquiry-extra", payload),
  
   // ✅ AFTER — use `put` like every other API in your file
-update: (id: number, payload: Record<string, unknown>) =>
+  update: (id: number, payload: Record<string, unknown>) =>
   put(`/inquiry-extra/${id}`, payload),
+
+  remove: (id: number) => del(`/inquiry-extra/${id}`),  // ← add this
 };
  
 
