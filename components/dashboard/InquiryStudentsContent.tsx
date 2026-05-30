@@ -104,7 +104,7 @@ const STATUS_STYLES: Record<string, string> = {
 const handleDelete = async (id: number) => {
   if (!confirm("Are you sure you want to delete this inquiry? This action cannot be undone.")) return
   try {
-    const data: any = await inquiryExtraApi.delete(id)
+    const data: any = await inquiryExtraApi.remove(id) 
     if (data.success) {
       setInquiries(prev => prev.filter(i => i.id !== id))
       if (selected?.id === id) setSelected(null)
