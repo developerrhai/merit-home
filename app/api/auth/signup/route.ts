@@ -5,6 +5,7 @@ const BACKEND = "https://institute-api.rhaitech.online/api";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    console.log("Calling:", `${BACKEND}/auth/signup`);
 
     const res = await fetch(`${BACKEND}/auth/signup`, {
       method: "POST",
