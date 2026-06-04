@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND = process.env.BACKEND_URL || "https://institute-api.rhaitech.online/api";
+const BACKEND = "https://institute-api.rhaitech.online/api";
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,18 +8,28 @@ export async function POST(request: NextRequest) {
 
     const res = await fetch(`${BACKEND}/auth/signup`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify(body),
     });
 
     const data = await res.json();
-    return NextResponse.json(data, { status: res.status });
 
+    return NextResponse.json(data, {
+      status: res.status,
+    });
   } catch (err) {
     console.error(err);
+
     return NextResponse.json(
-      { success: false, message: "Server error" },
-      { status: 500 }
+      {
+        success: false,
+        message: "Server error",
+      },
+      {
+        status: 500,
+      }
     );
   }
 }
