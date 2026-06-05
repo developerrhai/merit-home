@@ -1526,7 +1526,7 @@ export default function StudentManagementContent() {
                                 <span className={`text-xs font-semibold ${avgPct >= 75 ? "text-emerald-600" : avgPct >= 50 ? "text-amber-600" : "text-red-500"}`}>
                                   {avgPct.toFixed(0)}%
                                 </span>
-                              )}
+                              )}    
                             </TableCell>
                           )}
                         </TableRow>
