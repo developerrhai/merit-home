@@ -1,552 +1,989 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { GraduationCap, Search, Eye, Pencil, Trash2, Loader2 } from "lucide-react";
-import { Input } from "@/components/teacher/ui/input";
+import { ArrowLeft, GraduationCap, Download, Loader2, MessageCircle, Plus, ClipboardList, CalendarCheck } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Button } from "../ui/button";
+import { StudentProfile } from "../performdashboard/student-profile";
+import { StatsCard } from "../performdashboard/stats-card";
+import { PerformanceChart } from "../performdashboard/performance-chart";
+import { SubjectMarksChart } from "../performdashboard/subject-marks-chart";
+import { PerformanceInsights } from "../performdashboard/insights-card";
+import { DetailedAnalysis } from "../performdashboard/detailed-analysis";
+import { AddMarksDialog } from "../performdashboard/add-marks-dialog";
+import { BulkAddMarksDialog } from "../performdashboard/bulk-add-marks-dialog";
+import { AssessmentHistory } from "../performdashboard/assessment-history";
+import { AddAttendanceDialog } from "../performdashboard/add-attendance-dialog";
+import { RankHistory, type RankHistoryRow } from "../performdashboard/rank-history";
+import { PerformanceFilters, type PerformanceFiltersValue } from "./performance-filters";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/teacher/ui/select";
+  studentsUniversalApi,
+  teacherStudentAssessmentsApi,
+  studentAttendanceApi,
+  studentRankHistoryApi,
+} from "../../lib/api";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/teacher/ui/table";
-import { Button } from "@/components/teacher/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/teacher/ui/dialog";
-import { Label } from "@/components/teacher/ui/label";
-import { studentsApi, studentsUniversalApi, teacherStudentAssessmentsApi } from "@/lib/api";
+  type AssessmentRow,
+  type DashboardData,
+  buildDashboardData,
+  buildInsights,
+  parseAttendanceExtras,
+  parseRankExtras,
+  toNum,
+} from "../../lib/performance-utils";
 
 type Student = {
   id: number;
   name: string;
   phone: string;
-  father_phone?: string;
-  subject?: string;
-  marks?: number;
-  examination?: string;
-  exam_date?: string;
   standard: string;
   board: string;
   location: string;
 };
 
-type AssessmentRow = {
-  id?: number;
-  student_id: number;
-  subject: string;
-  marks: number;
-  examination: string;
-  exam_date: string;
+const emptyDashboard = (student: Student): DashboardData =>
+  buildDashboardData(student, [], { totalStudents: 1, classRank: 0 });
+
+// ─── Bulk send result tracking ────────────────────────────────────────────────
+type BulkResult = {
+  studentName: string;
+  phone: string;
+  status: "success" | "failed" | "skipped";
+  reason?: string;
 };
 
-export function StudentManagementContent() {
-  const [students, setStudents] = useState<Student[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [standardFilter, setStandardFilter] = useState("all");
-  const [boardFilter, setBoardFilter] = useState("all");
-  const [locationFilter, setLocationFilter] = useState("all");
-  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-  const [viewOpen, setViewOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
-  const [historyRows, setHistoryRows] = useState<AssessmentRow[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [savingEdit, setSavingEdit] = useState(false);
-  const [editForm, setEditForm] = useState({
-    subject: "",
-    marks: "",
-    examination: "",
-    exam_date: "",
+function getPerformanceLabel(pct: number): string {
+  if (pct >= 90) return "Excellent 🌟";
+  if (pct >= 75) return "Very Good 👍";
+  if (pct >= 60) return "Good ✅";
+  if (pct >= 50) return "Average 📘";
+  return "Needs Improvement 📚";
+}
+
+function mapAssessmentRows(data: unknown[]): AssessmentRow[] {
+  return (data || []).map((r: any) => ({
+    id: r.id,
+    subject: r.subject || "",
+    marks: toNum(r.marks),
+    total_marks: r.total_marks != null ? toNum(r.total_marks) : undefined,
+    examination: r.examination || "",
+    exam_date: r.exam_date || "",
+  }));
+}
+
+// ─── RhaiTech WhatsApp API call ───────────────────────────────────────────────
+
+// async function sendWhatsAppViaAPI(
+//   phone: string,
+//   studentName: string,
+//   className: string,
+//   examination: string,
+//   examDate: string,
+//   marks: number,
+//   totalMarks: number,
+//   performance: string
+// ): Promise<{ success: boolean; message: string }> {
+//   try {
+//     const res = await fetch(
+//       `${process.env.NEXT_PUBLIC_API_URL}/whatsapp/send-report`,
+//       {
+//         method: "POST",
+//         headers: { "Content-Type": "application/json" },
+//         body: JSON.stringify({
+//           phone,
+//           studentName,
+//           className,
+//           examination,
+//           examDate,
+//           marks,
+//           totalMarks,
+//           performance,
+//         }),
+//       }
+//     );
+
+//     const json = await res.json();
+//     return { success: json.success, message: json.message };
+//   } catch (e: any) {
+//     return { success: false, message: e?.message || "Network error" };
+//   }
+// }
+
+// async function sendWhatsAppViaAPI(
+//   phone: string,
+//   studentName: string,
+//   className: string,
+//   examination: string,
+//   examDate: string,
+//   marks: number,
+//   totalMarks: number,
+//   performance: string
+// ): Promise<{ success: boolean; message: string }> {
+
+//   try {
+
+//     // Clean phone number
+//     let cleanedPhone = String(phone || "").replace(/\D/g, "");
+
+//     // Add India code if missing
+//     if (cleanedPhone.length === 10) {
+//       cleanedPhone = `91${cleanedPhone}`;
+//     }
+
+//     // Validate
+//     if (cleanedPhone.length < 12) {
+//       return {
+//         success: false,
+//         message: `Invalid number: ${phone}`,
+//       };
+//     }
+
+//     console.log("📤 Sending WhatsApp to:", cleanedPhone);
+
+//     const res = await fetch(
+//       `${process.env.NEXT_PUBLIC_API_URL}/whatsapp/send-report`,
+//       {
+//         method: "POST",
+//         headers: {
+//           "Content-Type": "application/json",
+//         },
+
+//         body: JSON.stringify({
+//           phone: cleanedPhone,
+//           studentName,
+//           className,
+//           examination,
+//           examDate,
+//           marks,
+//           totalMarks,
+//           performance,
+//         }),
+//       }
+//     );
+
+//     const json = await res.json();
+
+//     console.log("✅ WhatsApp API Response:", json);
+
+//     return {
+//       success:
+//         json.success === true ||
+//         json.status === true ||
+//         json.message?.toLowerCase().includes("sent"),
+
+//       message: json.message || "Message processed",
+//     };
+
+//   } catch (e: any) {
+
+//     console.error("❌ WhatsApp Send Error:", e);
+
+//     return {
+//       success: false,
+//       message: e?.message || "Network error",
+//     };
+//   }
+// }
+async function sendWhatsAppViaAPI(
+  phone: string,
+  studentName: string,
+  className: string,
+  subject: string,
+  examination: string,
+  examDate: string,
+  marks: number,
+  totalMarks: number,
+  performance: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    let cleanedPhone = String(phone || "").replace(/\D/g, "");
+    if (cleanedPhone.length === 10) cleanedPhone = `91${cleanedPhone}`;
+    if (cleanedPhone.length < 12) {
+      return { success: false, message: `Invalid number: ${phone}` };
+    }
+
+    console.log("📤 Sending WhatsApp to:", cleanedPhone);
+
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/whatsapp/send-report`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone: cleanedPhone,
+          studentName: studentName,
+          className: className,
+          subject: subject,
+          examination: examination,
+          examDate: examDate,
+          marks: marks,
+          totalMarks: totalMarks,
+          performance: performance,
+        }),
+      }
+    );
+
+    const json = await res.json();
+    console.log("✅ WhatsApp API Response:", json);
+
+    return {
+      success:
+        json.success === true ||
+        json.status === true ||
+        json.message?.toLowerCase().includes("sent"),
+      message: json.message || "Message processed",
+    };
+  } catch (e: any) {
+    console.error("❌ WhatsApp Send Error:", e);
+    return { success: false, message: e?.message || "Network error" };
+  }
+}
+
+// ─── Report HTML builder ──────────────────────────────────────────────────────
+
+function generateReportHTML(data: DashboardData): string {
+  const generatedOn = new Date().toLocaleDateString("en-IN", {
+    day: "2-digit", month: "long", year: "numeric",
   });
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const [studentsRes, assessmentsRes]: any[] = await Promise.all([
-          studentsUniversalApi.getAll(),
-          teacherStudentAssessmentsApi.getLatestAll(),
-        ]);
+  const subjectRows = data.subjects.map((s) => {
+    const pct = ((s.marks / s.total) * 100).toFixed(1);
+    const pctNum = Number(pct);
+    const grade =
+      pctNum >= 90 ? "A+" : pctNum >= 80 ? "A" : pctNum >= 70 ? "B+" :
+        pctNum >= 60 ? "B" : pctNum >= 50 ? "C" : "D";
+    const barW = Math.max(0, Math.min(100, pctNum));
+    const badgeBg = pctNum >= 75 ? "#dcfce7" : pctNum >= 50 ? "#fef9c3" : "#fee2e2";
+    const badgeFg = pctNum >= 75 ? "#15803d" : pctNum >= 50 ? "#854d0e" : "#b91c1c";
+    return `
+        <tr>
+          <td style="padding:10px 12px;font-weight:500;color:#1e293b">${s.name}</td>
+          <td style="padding:10px 12px;text-align:center;color:#475569">${s.marks}</td>
+          <td style="padding:10px 12px;text-align:center;color:#475569">${s.total}</td>
+          <td style="padding:10px 12px;text-align:center;color:#475569">${pct}%</td>
+          <td style="padding:10px 12px;text-align:center">
+            <span style="display:inline-block;padding:2px 10px;border-radius:20px;font-size:12px;
+              font-weight:700;background:${badgeBg};color:${badgeFg}">${grade}</span>
+          </td>
+          <td style="padding:10px 12px">
+            <div style="background:#e2e8f0;border-radius:4px;height:8px;width:100%;min-width:80px">
+              <div style="background:${s.color};height:8px;border-radius:4px;width:${barW}%"></div>
+            </div>
+          </td>
+        </tr>`;
+  }).join("");
 
-        const latestMap = new Map<number, AssessmentRow>();
-        for (const row of assessmentsRes?.data || []) {
-          latestMap.set(Number(row.student_id), row);
+  const compRows = data.performanceData.map((p) => {
+    const diff = p.thisTerm - p.lastTerm;
+    const arrow = diff > 0 ? "&#9650;" : diff < 0 ? "&#9660;" : "&#8212;";
+    const color = diff > 0 ? "#16a34a" : diff < 0 ? "#dc2626" : "#94a3b8";
+    return `
+        <tr>
+          <td style="padding:10px 12px;font-weight:500;color:#1e293b">${p.subject}</td>
+          <td style="padding:10px 12px;text-align:center;color:#475569">${p.lastTerm}</td>
+          <td style="padding:10px 12px;text-align:center;color:#475569">${p.thisTerm}</td>
+          <td style="padding:10px 12px;text-align:center;font-weight:700;color:${color}">
+            ${arrow} ${Math.abs(diff)}
+          </td>
+        </tr>`;
+  }).join("");
+
+  const changeClass = (v: number) => (v >= 0 ? "change-pos" : "change-neg");
+  const arrowHTML = (v: number) => (v >= 0 ? "&#9650;" : "&#9660;");
+
+  return `<!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8"/>
+    <title>Performance Report – ${data.name}</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0 }
+      body { font-family: 'Segoe UI', Arial, sans-serif; background: #fff; color: #1e293b; font-size: 14px }
+      @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact } .no-print { display: none } }
+      .page { max-width: 900px; margin: 0 auto; padding: 40px 36px }
+      .header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 20px; border-bottom: 3px solid #0d9488; margin-bottom: 28px }
+      .header-left h1 { font-size: 22px; font-weight: 700; color: #0d9488 }
+      .header-left p { font-size: 12px; color: #94a3b8; margin-top: 2px }
+      .header-badge { background: #0d9488; color: #fff; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600 }
+      .profile-card { background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 12px; padding: 20px 24px; display: flex; gap: 32px; flex-wrap: wrap; margin-bottom: 24px }
+      .profile-field label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: .5px }
+      .profile-field p { font-size: 15px; font-weight: 600; color: #0f172a; margin-top: 2px }
+      .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 28px }
+      .stat-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; text-align: center }
+      .stat-box .label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: .5px }
+      .stat-box .value { font-size: 26px; font-weight: 700; color: #0f172a; margin: 4px 0 2px }
+      .stat-box .sub { font-size: 12px; color: #94a3b8 }
+      .change-pos { font-size: 12px; color: #16a34a; font-weight: 600 }
+      .change-neg { font-size: 12px; color: #dc2626; font-weight: 600 }
+      .section-title { font-size: 14px; font-weight: 700; color: #0f172a; border-left: 4px solid #0d9488; padding-left: 10px; margin: 24px 0 14px }
+      table { width: 100%; border-collapse: collapse; font-size: 13px }
+      thead tr { background: #f1f5f9 }
+      thead th { padding: 10px 12px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: #64748b; font-weight: 600 }
+      tbody tr:nth-child(even) { background: #f8fafc }
+      .footer { margin-top: 36px; padding-top: 16px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; font-size: 11px; color: #94a3b8 }
+      .print-btn { display: block; margin: 0 auto 28px; padding: 10px 28px; background: #0d9488; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer }
+    </style>
+  </head>
+  <body>
+  <div class="page">
+    <button class="print-btn no-print" onclick="window.print()">&#128438; Print / Save as PDF</button>
+    <div class="header">
+      <div class="header-left"><h1>Student Performance Report</h1><p>Generated on ${generatedOn}</p></div>
+      <span class="header-badge">Academic Report</span>
+    </div>
+    <div class="profile-card">
+      <div class="profile-field"><label>Student Name</label><p>${data.name}</p></div>
+      <div class="profile-field"><label>Class / Standard</label><p>${data.class}</p></div>
+      <div class="profile-field"><label>Board</label><p>${data.board}</p></div>
+      <div class="profile-field"><label>Location</label><p>${data.location}</p></div>
+      <div class="profile-field"><label>Contact</label><p>${data.phone}</p></div>
+    </div>
+    <div class="section-title">Performance Overview</div>
+    <div class="stats-grid">
+      <div class="stat-box"><div class="label">Overall %</div><div class="value">${data.stats.overallPercentage}%</div>
+        <div class="${changeClass(data.stats.percentageChange)}">${arrowHTML(data.stats.percentageChange)} ${Math.abs(data.stats.percentageChange)}% vs Last Term</div></div>
+      <div class="stat-box"><div class="label">Avg Marks</div><div class="value">${data.stats.averageMarks}</div><div class="sub">out of ${data.stats.totalMarks}</div></div>
+      <div class="stat-box"><div class="label">Class Rank</div><div class="value">${data.stats.classRank}</div><div class="sub">of ${data.stats.totalStudents} students</div></div>
+      <div class="stat-box"><div class="label">Attendance</div><div class="value">${data.stats.attendance}%</div>
+        <div class="${changeClass(data.stats.attendanceChange)}">${arrowHTML(data.stats.attendanceChange)} ${Math.abs(data.stats.attendanceChange)}% vs Last Term</div></div>
+    </div>
+    <div class="section-title">Subject-wise Performance</div>
+    <table>
+      <thead><tr><th>Subject</th><th style="text-align:center">Marks</th><th style="text-align:center">Total</th><th style="text-align:center">Percentage</th><th style="text-align:center">Grade</th><th>Progress</th></tr></thead>
+      <tbody>${subjectRows}</tbody>
+    </table>
+    ${compRows ? `<div class="section-title">Term-over-Term Comparison</div>
+    <table><thead><tr><th>Subject</th><th style="text-align:center">Last Term</th><th style="text-align:center">This Term</th><th style="text-align:center">Change</th></tr></thead>
+    <tbody>${compRows}</tbody></table>` : ""}
+    <div class="footer"><span>Student Performance Analysis System</span><span>Report for ${data.name} &nbsp;|&nbsp; ${generatedOn}</span></div>
+  </div></body></html>`;
+}
+
+async function downloadReport(data: DashboardData) {
+  const html = generateReportHTML(data);
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, "_blank");
+  if (win) { win.focus(); setTimeout(() => URL.revokeObjectURL(url), 10_000); }
+  else {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `report-${data.name.replace(/\s+/g, "-").toLowerCase()}.html`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 5_000);
+  }
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
+export default function StudentPerformanceDashboard() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [students, setStudents] = useState<Student[]>([]);
+  const preferredStudentId = Number(searchParams.get("studentId"));
+  const [selectedStudentId, setSelectedStudentId] = useState<number | null>(() =>
+    Number.isFinite(preferredStudentId) ? preferredStudentId : null
+  );
+  // const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [historyRows, setHistoryRows] = useState<AssessmentRow[]>([]);
+  const [filters, setFilters] = useState<PerformanceFiltersValue>({
+    examination: "",
+    subject: "",
+    dateFrom: "",
+    dateTo: "",
+  });
+
+  const [attendanceExtras, setAttendanceExtras] = useState({
+    attendance: 0,
+    attendanceChange: 0,
+  });
+
+  const [rankExtras, setRankExtras] = useState({
+    classRank: 0,
+    totalStudents: 1,
+    rankChange: 0,
+  });
+  const [rankHistoryRows, setRankHistoryRows] = useState<RankHistoryRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [studentLoading, setStudentLoading] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [addMarksOpen, setAddMarksOpen] = useState(false);
+  const [bulkMarksOpen, setBulkMarksOpen] = useState(false);
+  const [addAttendanceOpen, setAddAttendanceOpen] = useState(false);
+
+  // ── Bulk send state ────────────────────────────────────────────────────────
+  const [bulkSending, setBulkSending] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState(0);
+  const [bulkTotal, setBulkTotal] = useState(0);
+  const [bulkResults, setBulkResults] = useState<BulkResult[]>([]);
+  const [showBulkResults, setShowBulkResults] = useState(false);
+  // Raw assessments cache per student: studentId → rows
+  const [assessmentCache, setAssessmentCache] = useState<Map<number, AssessmentRow[]>>(new Map());
+
+  const selectedStudent = useMemo(
+    () => students.find((s) => s.id === selectedStudentId) ?? null,
+    [students, selectedStudentId]
+  );
+  useEffect(() => {
+    const loadStudents = async () => {
+      setLoading(true); setError(null);
+      try {
+        const studentsRes: any = await studentsUniversalApi.getAll();
+        const allStudents: Student[] = (studentsRes?.data || []).map((s: any) => ({
+          id: Number(s.id), name: s.name || "", phone: s.phone || "",
+          standard: s.standard || "", board: s.board || "", location: s.location || "",
+        }));
+        setStudents(allStudents);
+        if (allStudents.length > 0) {
+          const queryMatch = allStudents.find((s) => s.id === preferredStudentId);
+          setSelectedStudentId(queryMatch ? queryMatch.id : allStudents[0].id);
+        } else {
+          // setDashboardData(null);
         }
 
-        const merged: Student[] = (studentsRes?.data || []).map((s: any) => {
-          const latest = latestMap.get(Number(s.id));
-          return {
-            id: Number(s.id),
-            name: s.name || "",
-            phone: s.phone || "",
-            father_phone: s.father_phone || "",
-            subject: latest?.subject || "",
-            marks: latest?.marks !== undefined ? Number(latest.marks) : undefined,
-            examination: latest?.examination || "",
-            exam_date: latest?.exam_date || "",
-            standard: s.standard || "",
-            board: s.board || "",
-            location: s.location || "",
-          };
+      } catch (e: any) { setError(e?.message || "Failed to load students"); }
+      finally { setLoading(false); }
+    };
+    loadStudents();
+  }, [preferredStudentId]);
+
+  useEffect(() => {
+    if (!students.length || !Number.isFinite(preferredStudentId)) return;
+    const queryMatch = students.find((s) => s.id === preferredStudentId);
+    if (queryMatch && queryMatch.id !== selectedStudentId) setSelectedStudentId(queryMatch.id);
+  }, [preferredStudentId, students, selectedStudentId]);
+
+  const handleStudentChange = (id: number) => {
+    setSelectedStudentId(id);
+    setFilters({
+      examination: "",
+      subject: "",
+      dateFrom: "",
+      dateTo: "",
+    });
+    router.replace(`/teacherdashboard/performanceanalysis?studentId=${id}`);
+  };
+
+  const handleDownloadReport = async () => {
+    if (!displayData) return;
+    setDownloading(true);
+    try { await downloadReport(displayData); }
+    finally { setDownloading(false); }
+  };
+
+  const refreshStudentPerformance = async () => {
+    if (!selectedStudent) return;
+    setStudentLoading(true);
+    setError(null);
+
+    const [assessmentResult, attendanceResult, rankResult] = await Promise.allSettled([
+      teacherStudentAssessmentsApi.getByStudent(selectedStudent.id),
+      studentAttendanceApi.getByStudent(selectedStudent.id),
+      studentRankHistoryApi.getByStudent(selectedStudent.id),
+    ]);
+
+    if (assessmentResult.status === "rejected") {
+      setError(assessmentResult.reason?.message || "Failed to load marks from server");
+      setStudentLoading(false);
+      return;
+    }
+
+    try {
+      const assessmentRes = assessmentResult.value as { data?: unknown[] };
+      const attendanceRes =
+        attendanceResult.status === "fulfilled"
+          ? (attendanceResult.value as { data?: unknown[] })
+          : { data: [] };
+      const rankRes =
+        rankResult.status === "fulfilled"
+          ? (rankResult.value as { data?: unknown[] })
+          : { data: [] };
+
+      const rows = mapAssessmentRows(assessmentRes?.data || []);
+      setHistoryRows(rows);
+      setAssessmentCache((prev) => new Map(prev).set(selectedStudent.id, rows));
+
+      const attendanceList = (attendanceRes?.data || []) as Array<{ attendance_percentage?: number }>;
+      const rankList = (rankRes?.data || []) as Array<{
+        id?: number;
+        class_rank?: number;
+        total_students?: number;
+        average_percentage?: number;
+        snapshot_date?: string;
+      }>;
+      setRankHistoryRows(
+        rankList.map((r) => ({
+          id: r.id,
+          class_rank: Number(r.class_rank) || 0,
+          total_students: Number(r.total_students) || 0,
+          average_percentage: Number(r.average_percentage) || 0,
+          snapshot_date: r.snapshot_date || "",
+        }))
+      );
+
+      const attendanceExtrasParsed = parseAttendanceExtras(attendanceList);
+      const rankExtrasParsed = parseRankExtras(rankList, students.length);
+
+      setAttendanceExtras({
+        attendance: attendanceExtrasParsed.attendance ?? 0,
+        attendanceChange: attendanceExtrasParsed.attendanceChange ?? 0,
+      });
+      setRankExtras({
+        classRank: rankExtrasParsed.classRank ?? 0,
+        totalStudents: rankExtrasParsed.totalStudents ?? students.length,
+        rankChange: rankExtrasParsed.rankChange ?? 0,
+      });
+
+      // const built = buildDashboardData(selectedStudent, rows, {
+      //   totalStudents: rankExtrasParsed.totalStudents ?? students.length,
+      //   ...rankExtrasParsed,
+      //   ...attendanceExtrasParsed,
+      // });
+      // setDashboardData(built);
+
+      if (!rankList.length && rows.length > 0) {
+        try {
+          await studentRankHistoryApi.snapshotAll();
+          const refreshed: any = await studentRankHistoryApi.getByStudent(selectedStudent.id);
+          const refreshedRanks = refreshed?.data || [];
+          setRankHistoryRows(
+            refreshedRanks.map((r: {
+              id?: number;
+              class_rank?: number;
+              total_students?: number;
+              average_percentage?: number;
+              snapshot_date?: string;
+            }) => ({
+              id: r.id,
+              class_rank: Number(r.class_rank) || 0,
+              total_students: Number(r.total_students) || 0,
+              average_percentage: Number(r.average_percentage) || 0,
+              snapshot_date: r.snapshot_date || "",
+            }))
+          );
+          const updatedRank = parseRankExtras(refreshedRanks, students.length);
+          setRankExtras({
+            classRank: updatedRank.classRank ?? 0,
+            totalStudents: updatedRank.totalStudents ?? students.length,
+            rankChange: updatedRank.rankChange ?? 0,
+          });
+          // setDashboardData(
+          //   buildDashboardData(selectedStudent, rows, {
+          //     totalStudents: updatedRank.totalStudents ?? students.length,
+          //     ...updatedRank,
+          //     ...attendanceExtrasParsed,
+          //   })
+          // );
+        } catch {
+          /* snapshot optional */
+        }
+      }
+    } catch (e: any) {
+      setError(e?.message || "Failed to load performance data");
+    } finally {
+      setStudentLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!selectedStudent) return;
+    refreshStudentPerformance();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedStudent?.id, students.length]);
+
+  const filteredHistoryRows = useMemo(() => {
+    return historyRows.filter((row) => {
+      if (filters.examination && row.examination !== filters.examination) {
+        return false;
+      }
+      if (filters.subject && row.subject !== filters.subject) {
+        return false;
+      }
+      if (filters.dateFrom && row.exam_date < filters.dateFrom) {
+        return false;
+      }
+      if (filters.dateTo && row.exam_date > filters.dateTo) {
+        return false;
+      }
+      return true;
+    });
+  }, [historyRows, filters]);
+
+  const displayData = useMemo(() => {
+    // if (dashboardData) return dashboardData;
+    if (selectedStudent) {
+      return buildDashboardData(selectedStudent, filteredHistoryRows, {
+        totalStudents: rankExtras.totalStudents ?? students.length,
+        ...rankExtras,
+        ...attendanceExtras,
+      });
+    }
+    return emptyDashboard({
+      id: 0,
+      name: loading ? "Loading…" : "Select a student",
+      phone: "",
+      standard: "",
+      board: "",
+      location: "",
+    });
+  }, [selectedStudent, filteredHistoryRows, rankExtras, attendanceExtras, students.length, loading]);
+
+  const insights = useMemo(() => {
+    if (!displayData) {
+      return buildInsights(
+        emptyDashboard({ id: 0, name: "", phone: "", standard: "", board: "", location: "" })
+      );
+    }
+    return buildInsights(displayData);
+  }, [displayData]);
+
+  // ── Bulk Send Handler ──────────────────────────────────────────────────────
+  const handleBulkSend = async () => {
+    if (bulkSending) return;
+    const confirm = window.confirm(
+      `Send WhatsApp report to all ${students.length} students?\n\nThis will send the latest test result for each student via the marks_update template.`
+    );
+    if (!confirm) return;
+
+    setBulkSending(true);
+    setBulkProgress(0);
+    setBulkTotal(students.length);
+    setBulkResults([]);
+    setShowBulkResults(false);
+    setError(null);
+
+    const results: BulkResult[] = [];
+
+    for (let i = 0; i < students.length; i++) {
+      const student = students[i];
+      setBulkProgress(i + 1);
+
+      // Skip if no phone
+      if (!student.phone?.trim()) {
+        results.push({ studentName: student.name, phone: "—", status: "skipped", reason: "No phone number" });
+        continue;
+      }
+
+      try {
+        // Fetch assessments (use cache if already loaded)
+        let rows: AssessmentRow[] = assessmentCache.get(student.id) || [];
+        if (!rows.length) {
+          const res: any = await teacherStudentAssessmentsApi.getByStudent(student.id);
+          rows = mapAssessmentRows(res?.data || []);
+          setAssessmentCache((prev) => new Map(prev).set(student.id, rows));
+        }
+
+        if (!rows.length) {
+          results.push({ studentName: student.name, phone: student.phone, status: "skipped", reason: "No assessment data" });
+          continue;
+        }
+
+        // Get latest assessment row
+        const latest = rows[0];
+
+        // Use actual total_marks from DB, fallback to 100
+        const totalMarks =
+          latest.total_marks != null && latest.total_marks > 0
+            ? latest.total_marks
+            : 100;
+
+        const pct = (toNum(latest.marks) / totalMarks) * 100;
+        const performance = getPerformanceLabel(pct);
+        const examDate = latest.exam_date
+          ? new Date(latest.exam_date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+          : new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+
+        const result = await sendWhatsAppViaAPI(
+          student.phone,
+          student.name,
+          student.standard,
+          latest.subject || "",
+          latest.examination || "Weekly Test",
+          examDate,
+          toNum(latest.marks),
+          totalMarks,      // ← dynamic from DB
+          performance
+        );
+
+        results.push({
+          studentName: student.name,
+          phone: student.phone,
+          status: result.success ? "success" : "failed",
+          reason: result.success ? undefined : result.message,
         });
 
-        setStudents(merged);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
+        // Small delay between API calls to avoid rate limiting
+        await new Promise((r) => setTimeout(r, 300));
+
+      } catch (e: any) {
+        results.push({ studentName: student.name, phone: student.phone, status: "failed", reason: e?.message || "Unknown error" });
       }
-    };
-    load();
-  }, []);
-
-  const standards = useMemo(
-    () => Array.from(new Set(students.map((student) => student.standard))).filter(Boolean),
-    [students]
-  );
-  const boards = useMemo(
-    () => Array.from(new Set(students.map((student) => student.board))).filter(Boolean),
-    [students]
-  );
-  const locations = useMemo(
-    () => Array.from(new Set(students.map((student) => student.location))).filter(Boolean),
-    [students]
-  );
-
-  const filteredStudents = useMemo(() => {
-    const query = searchTerm.trim().toLowerCase();
-
-    return students.filter((student) => {
-      const matchesQuery =
-        query.length === 0 ||
-        student.name.toLowerCase().includes(query) ||
-        student.phone.toLowerCase().includes(query) ||
-        String(student.father_phone || "").toLowerCase().includes(query);
-      const matchesStandard =
-        standardFilter === "all" || student.standard === standardFilter;
-      const matchesBoard = boardFilter === "all" || student.board === boardFilter;
-      const matchesLocation =
-        locationFilter === "all" || student.location === locationFilter;
-
-      return (
-        matchesQuery && matchesStandard && matchesBoard && matchesLocation
-      );
-    });
-  }, [students, searchTerm, standardFilter, boardFilter, locationFilter]);
-
-  const openView = async (student: Student) => {
-    setSelectedStudent(student);
-    setViewOpen(true);
-    setHistoryLoading(true);
-    try {
-      const res: any = await teacherStudentAssessmentsApi.getByStudent(student.id);
-      setHistoryRows(res?.data || []);
-    } catch (err) {
-      console.error(err);
-      setHistoryRows([]);
-    } finally {
-      setHistoryLoading(false);
     }
+
+    setBulkResults(results);
+    setBulkSending(false);
+    setShowBulkResults(true);
   };
 
-  const openEdit = async (student: Student) => {
-    setSelectedStudent(student);
-    setEditForm({
-      subject: "",
-      marks: "",
-      examination: "",
-      exam_date: new Date().toISOString().split("T")[0],
-    });
-    setHistoryLoading(true);
-    try {
-      const res: any = await teacherStudentAssessmentsApi.getByStudent(student.id);
-      setHistoryRows(res?.data || []);
-    } catch (err) {
-      console.error(err);
-      setHistoryRows([]);
-    } finally {
-      setHistoryLoading(false);
-    }
-    setEditOpen(true);
-  };
-
-  const saveEdit = async () => {
-    if (!selectedStudent) return;
-    if (!editForm.subject || !editForm.examination || !editForm.exam_date || !editForm.marks) {
-      alert("Please fill subject, marks, examination and date");
-      return;
-    }
-    const marksNum = Number(editForm.marks);
-    if (Number.isNaN(marksNum) || marksNum < 0) {
-      alert("Marks must be a valid non-negative number");
-      return;
-    }
-
-    setSavingEdit(true);
-    try {
-      await teacherStudentAssessmentsApi.createByStudent(selectedStudent.id, {
-        subject: editForm.subject,
-        marks: marksNum,
-        examination: editForm.examination,
-        exam_date: editForm.exam_date,
-      });
-
-      const refreshed: any = await teacherStudentAssessmentsApi.getByStudent(selectedStudent.id);
-      const nextHistory = refreshed?.data || [];
-      setHistoryRows(nextHistory);
-
-      const latest = nextHistory[0];
-
-      setStudents((prev) =>
-        prev.map((s) =>
-          s.id === selectedStudent.id
-            ? {
-                ...s,
-                subject: latest?.subject || "",
-                marks: latest?.marks !== undefined ? Number(latest.marks) : undefined,
-                examination: latest?.examination || "",
-                exam_date: latest?.exam_date || "",
-              }
-            : s
-        )
-      );
-      setEditForm({
-        subject: "",
-        marks: "",
-        examination: "",
-        exam_date: new Date().toISOString().split("T")[0],
-      });
-      setEditOpen(false);
-    } catch (err: any) {
-      alert(err.message || "Failed to save");
-    } finally {
-      setSavingEdit(false);
-    }
-  };
-
-  const deleteStudent = async (student: Student) => {
-    if (!confirm(`Delete student "${student.name}"?`)) return;
-    setActionLoadingId(student.id);
-    try {
-      await studentsApi.remove(student.id);
-      setStudents((prev) => prev.filter((s) => s.id !== student.id));
-    } catch (err: any) {
-      alert(err.message || "Failed to delete student");
-    } finally {
-      setActionLoadingId(null);
-    }
-  };
+  const successCount = bulkResults.filter((r) => r.status === "success").length;
+  const failedCount = bulkResults.filter((r) => r.status === "failed").length;
+  const skippedCount = bulkResults.filter((r) => r.status === "skipped").length;
 
   return (
-    <section className="rounded-3xl border border-border bg-card p-4 md:p-6 shadow-[var(--shadow-soft)]">
-      <div className="flex items-center gap-2 text-xl font-semibold">
-        <GraduationCap className="h-5 w-5 text-primary" />
-        <h2>Students Management</h2>
-      </div>
+    <div className="min-h-screen bg-slate-50">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
 
-      <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-4">
-        <div className="relative md:col-span-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Search by name or phone..."
-            className="h-10 rounded-full pl-10"
-          />
-        </div>
-
-        <Select value={standardFilter} onValueChange={setStandardFilter}>
-          <SelectTrigger className="h-10 rounded-full">
-            <SelectValue placeholder="All Standards" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Standards</SelectItem>
-            {standards.map((standard) => (
-              <SelectItem key={standard} value={standard}>
-                Std {standard}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={boardFilter} onValueChange={setBoardFilter}>
-          <SelectTrigger className="h-10 rounded-full">
-            <SelectValue placeholder="All Boards" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Boards</SelectItem>
-            {boards.map((board) => (
-              <SelectItem key={board} value={board}>
-                {board}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={locationFilter} onValueChange={setLocationFilter}>
-          <SelectTrigger className="h-10 rounded-full">
-            <SelectValue placeholder="All Locations" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Locations</SelectItem>
-            {locations.map((location) => (
-              <SelectItem key={location} value={location}>
-                {location}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="mt-5 overflow-hidden rounded-2xl border border-border">
-        {loading ? (
-          <div className="py-10 flex justify-center">
-            <Loader2 className="h-7 w-7 animate-spin text-primary" />
+        {/* ── Header ── */}
+        <div className="mb-6 flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push("/teacherdashboard/subjects")}
+              className="rounded-lg p-2 hover:bg-slate-200 transition-colors"
+              title="Back to Student Management"
+            >
+              <ArrowLeft className="h-5 w-5 text-slate-600" />
+            </button>
+            <div className="flex items-center gap-2">
+              <GraduationCap className="h-6 w-6 text-teal-600" />
+              <h1 className="text-xl font-bold text-slate-800 sm:text-2xl">Student Performance Analysis</h1>
+            </div>
           </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-slate-900 hover:bg-slate-900">
-                <TableHead className="text-white">Name</TableHead>
-                <TableHead className="text-white">Phone</TableHead>
-                {/* <TableHead className="text-white">Subject</TableHead> */}
-                <TableHead className="text-white">Marks</TableHead>
-                <TableHead className="text-white">Std</TableHead>
-                <TableHead className="text-white">Board</TableHead>
-                <TableHead className="text-white">Location</TableHead>
-                <TableHead className="text-right text-white">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredStudents.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={8}
-                    className="py-10 text-center text-sm text-muted-foreground"
-                  >
-                    No students found for selected filters.
-                  </TableCell>
-                </TableRow>
+
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            <select
+              value={selectedStudentId ?? ""}
+              onChange={(e) => handleStudentChange(Number(e.target.value))}
+              className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700"
+              disabled={loading || students.length === 0}
+            >
+              {students.length === 0 ? (
+                <option value="">No students</option>
               ) : (
-                filteredStudents.map((student) => (
-                  <TableRow key={student.id}>
-                    <TableCell className="font-medium">{student.name}</TableCell>
-                    <TableCell>{student.phone}</TableCell>
-                    {/* <TableCell>{student.subject || "—"}</TableCell> */}
-                    <TableCell>
-                      {student.marks !== undefined ? (
-                        <span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700">
-                          {student.marks}
-                        </span>
-                      ) : (
-                        "—"
-                      )}
-                    </TableCell>
-                    <TableCell>{student.standard}</TableCell>
-                    <TableCell>{student.board}</TableCell>
-                    <TableCell>{student.location}</TableCell>
-                    <TableCell>
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          type="button"
-                          size="icon"
-                          className="h-9 w-9 rounded-full bg-cyan-500 text-white hover:bg-cyan-600"
-                          title="View"
-                          onClick={() => openView(student)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          type="button"
-                          size="icon"
-                          className="h-9 w-9 rounded-full bg-teal-500 text-white hover:bg-teal-600"
-                          title="Edit"
-                          onClick={() => openEdit(student)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          type="button"
-                          size="icon"
-                          className="h-9 w-9 rounded-full bg-red-500 text-white hover:bg-red-600"
-                          title="Delete"
-                          onClick={() => deleteStudent(student)}
-                          disabled={actionLoadingId === student.id}
-                        >
-                          {actionLoadingId === student.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                students.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name || `Student ${s.id}`}</option>
                 ))
               )}
-            </TableBody>
-          </Table>
+            </select>
+
+            {/* 📤 Bulk Send Button */}
+            <Button
+              onClick={handleBulkSend}
+              disabled={bulkSending || loading || students.length === 0}
+              className="bg-green-600 hover:bg-green-700 text-white gap-2 shadow-md disabled:opacity-60"
+              title="Send latest test report to all students via WhatsApp"
+            >
+              {bulkSending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="hidden sm:inline">{bulkProgress}/{bulkTotal} Sending...</span>
+                </>
+              ) : (
+                <>
+                  <MessageCircle className="h-4 w-4" />
+                  <span className="hidden sm:inline">Bulk WhatsApp</span>
+                </>
+              )}
+            </Button>
+
+            <Button
+              onClick={() => setAddMarksOpen(true)}
+              disabled={loading || !selectedStudentId}
+              className="bg-violet-600 hover:bg-violet-700 text-white gap-2 shadow-md disabled:opacity-60"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Add Marks</span>
+            </Button>
+
+            <Button
+              onClick={() => setAddAttendanceOpen(true)}
+              disabled={loading || !selectedStudentId}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 shadow-md disabled:opacity-60"
+            >
+              <CalendarCheck className="h-4 w-4" />
+              <span className="hidden sm:inline">Add Attendance</span>
+            </Button>
+
+            <Button
+              onClick={() => setBulkMarksOpen(true)}
+              disabled={loading || students.length === 0}
+              variant="outline"
+              className="border-amber-400 text-amber-700 hover:bg-amber-50 gap-2"
+            >
+              <ClipboardList className="h-4 w-4" />
+              <span className="hidden sm:inline">Bulk Marks</span>
+            </Button>
+
+            {/* 📥 Download Button */}
+            <Button
+              onClick={handleDownloadReport}
+              disabled={downloading || loading || studentLoading || !displayData}
+              className="bg-teal-500 hover:bg-teal-600 text-white gap-2 shadow-md disabled:opacity-60"
+            >
+              {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              <span className="hidden sm:inline">{downloading ? "Preparing..." : "Download Report"}</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* ── Bulk Progress Bar ── */}
+        {bulkSending && (
+          <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-green-800 flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Sending reports... {bulkProgress} of {bulkTotal}
+              </span>
+              <span className="text-sm text-green-600">{Math.round((bulkProgress / bulkTotal) * 100)}%</span>
+            </div>
+            <div className="w-full bg-green-200 rounded-full h-2">
+              <div
+                className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${(bulkProgress / bulkTotal) * 100}%` }}
+              />
+            </div>
+          </div>
         )}
-      </div>
 
-      <Dialog open={viewOpen} onOpenChange={setViewOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Student Details</DialogTitle>
-          </DialogHeader>
-          {selectedStudent && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div><span className="text-muted-foreground">Name:</span> {selectedStudent.name}</div>
-                <div><span className="text-muted-foreground">Phone:</span> {selectedStudent.phone}</div>
-                <div><span className="text-muted-foreground">Standard:</span> {selectedStudent.standard}</div>
-                <div><span className="text-muted-foreground">Board:</span> {selectedStudent.board}</div>
-                <div><span className="text-muted-foreground">Location:</span> {selectedStudent.location}</div>
-              </div>
+        {/* ── Bulk Results Summary ── */}
+        {showBulkResults && !bulkSending && (
+          <div className="mb-4 rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
+            {/* Summary bar */}
+            <div className="flex items-center gap-4 p-4 border-b border-slate-100 flex-wrap">
+              <span className="font-semibold text-slate-700">Bulk Send Complete</span>
+              <span className="flex items-center gap-1 text-sm text-green-700 bg-green-50 px-3 py-1 rounded-full">
+                ✅ {successCount} Sent
+              </span>
+              <span className="flex items-center gap-1 text-sm text-red-700 bg-red-50 px-3 py-1 rounded-full">
+                ❌ {failedCount} Failed
+              </span>
+              <span className="flex items-center gap-1 text-sm text-yellow-700 bg-yellow-50 px-3 py-1 rounded-full">
+                ⚠️ {skippedCount} Skipped
+              </span>
+              <button
+                onClick={() => setShowBulkResults(false)}
+                className="ml-auto text-xs text-slate-400 hover:text-slate-600 underline"
+              >
+                Dismiss
+              </button>
+            </div>
 
-              <div className="rounded-xl border border-border overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Subject</TableHead>
-                      <TableHead>Examination</TableHead>
-                      <TableHead>Marks</TableHead>
-                      <TableHead>Date</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {historyLoading ? (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-center py-6">
-                          <Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" />
-                        </TableCell>
-                      </TableRow>
-                    ) : historyRows.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-center text-muted-foreground py-6">
-                          No assessment entries yet.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      historyRows.map((row) => (
-                        <TableRow key={`${row.id || 0}-${row.exam_date}-${row.subject}`}>
-                          <TableCell>{row.subject}</TableCell>
-                          <TableCell>{row.examination}</TableCell>
-                          <TableCell>{row.marks}</TableCell>
-                          <TableCell>{row.exam_date ? String(row.exam_date).split("T")[0] : "—"}</TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
+            {/* Detailed result table */}
+            <div className="max-h-56 overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 sticky top-0">
+                  <tr>
+                    <th className="text-left px-4 py-2 text-xs text-slate-500 font-medium">Student</th>
+                    <th className="text-left px-4 py-2 text-xs text-slate-500 font-medium">Phone</th>
+                    <th className="text-left px-4 py-2 text-xs text-slate-500 font-medium">Status</th>
+                    <th className="text-left px-4 py-2 text-xs text-slate-500 font-medium">Reason</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bulkResults.map((r, i) => (
+                    <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-slate-50"}>
+                      <td className="px-4 py-2 font-medium text-slate-700">{r.studentName}</td>
+                      <td className="px-4 py-2 text-slate-500">{r.phone}</td>
+                      <td className="px-4 py-2">
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold
+                            ${r.status === "success" ? "bg-green-100 text-green-700" :
+                            r.status === "failed" ? "bg-red-100 text-red-700" :
+                              "bg-yellow-100 text-yellow-700"}`}>
+                          {r.status === "success" ? "✅ Sent" : r.status === "failed" ? "❌ Failed" : "⚠️ Skipped"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 text-slate-400 text-xs">{r.reason || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ── Error ── */}
+        {error && (
+          <div className="mb-4 rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-700">{error}</div>
+        )}
+
+        {/* ── Dashboard Card ── */}
+        <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
+          {(loading || studentLoading) && (
+            <div className="mb-4 flex items-center gap-2 rounded-lg border border-sky-100 bg-sky-50 p-3 text-sm text-sky-700">
+              <Loader2 className="h-4 w-4 animate-spin" /> Loading dashboard data...
             </div>
           )}
-        </DialogContent>
-      </Dialog>
 
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Add Student Test</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="space-y-1">
-              <Label>Subject</Label>
-              <Input
-                value={editForm.subject}
-                onChange={(e) => setEditForm((p) => ({ ...p, subject: e.target.value }))}
-                placeholder="e.g. Mathematics"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Marks</Label>
-              <Input
-                type="number"
-                value={editForm.marks}
-                onChange={(e) => setEditForm((p) => ({ ...p, marks: e.target.value }))}
-                placeholder="e.g. 87"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Examination</Label>
-              <Input
-                value={editForm.examination}
-                onChange={(e) => setEditForm((p) => ({ ...p, examination: e.target.value }))}
-                placeholder="e.g. Unit Test 1"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Date</Label>
-              <Input
-                type="date"
-                value={editForm.exam_date}
-                onChange={(e) => setEditForm((p) => ({ ...p, exam_date: e.target.value }))}
-              />
-            </div>
-
-            <div className="rounded-xl border border-border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Subject</TableHead>
-                    <TableHead>Exam</TableHead>
-                    <TableHead>Marks</TableHead>
-                    <TableHead>Date</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {historyLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center py-4">
-                        <Loader2 className="mx-auto h-5 w-5 animate-spin text-muted-foreground" />
-                      </TableCell>
-                    </TableRow>
-                  ) : historyRows.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground py-4">
-                        No tests added yet.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    historyRows.map((row) => (
-                      <TableRow key={`edit-${row.id || 0}-${row.exam_date}-${row.subject}`}>
-                        <TableCell>{row.subject}</TableCell>
-                        <TableCell>{row.examination}</TableCell>
-                        <TableCell>{row.marks}</TableCell>
-                        <TableCell>{row.exam_date ? String(row.exam_date).split("T")[0] : "—"}</TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+          <div className="mb-6 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <StudentProfile
+              name={displayData!.name}
+              phone={displayData!.phone}
+              className={displayData!.class}
+              board={displayData!.board}
+              location={displayData!.location}
+            />
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <StatsCard title="Overall Percentage" value={`${displayData!.stats.overallPercentage}%`}
+                change={displayData!.stats.percentageChange} changeLabel="vs Last Term" icon="percentage" />
+              <StatsCard title="Average Marks" value={displayData!.stats.averageMarks}
+                subValue={`/ ${displayData!.stats.totalMarks}`} change={displayData!.stats.averageChange}
+                changeLabel="vs Last Term" icon="star" />
+              <StatsCard title="Class Rank" value={displayData!.stats.classRank}
+                subValue={`/ ${displayData!.stats.totalStudents}`} change={displayData!.stats.rankChange}
+                changeLabel="vs Last Term" icon="rank" />
+              <StatsCard title="Attendance" value={`${displayData!.stats.attendance}%`}
+                change={displayData!.stats.attendanceChange} changeLabel="vs Last Term" icon="attendance" />
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
-            <Button onClick={saveEdit} disabled={savingEdit}>
-              {savingEdit && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Add Test
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </section>
+          <div className="mb-6">
+            <PerformanceFilters
+              assessmentRows={historyRows}
+              value={filters}
+              onChange={setFilters}
+            />
+          </div>
+
+          <div className="mb-6 grid gap-6 lg:grid-cols-3">
+            <div className="lg:col-span-1"><PerformanceChart data={displayData!.performanceData} /></div>
+            <div className="lg:col-span-1">
+              <SubjectMarksChart subjects={displayData!.subjects} average={displayData!.stats.overallPercentage} />
+            </div>
+            <div className="lg:col-span-1"><PerformanceInsights insights={insights} /></div>
+          </div>
+
+          <DetailedAnalysis subjects={displayData!.subjects} />
+          <div className="mt-6">
+            <AssessmentHistory rows={filteredHistoryRows} loading={studentLoading} />
+          </div>
+          <div className="mt-6">
+            <RankHistory rows={rankHistoryRows} loading={studentLoading} />
+          </div>
+        </div>
+
+        <AddMarksDialog
+          open={addMarksOpen}
+          onOpenChange={setAddMarksOpen}
+          studentId={selectedStudentId}
+          studentName={selectedStudent?.name}
+          onSaved={refreshStudentPerformance}
+        />
+
+        <BulkAddMarksDialog
+          open={bulkMarksOpen}
+          onOpenChange={setBulkMarksOpen}
+          students={students.map((s) => ({ id: s.id, name: s.name }))}
+          onSaved={refreshStudentPerformance}
+        />
+
+        <AddAttendanceDialog
+          open={addAttendanceOpen}
+          onOpenChange={setAddAttendanceOpen}
+          studentId={selectedStudentId}
+          studentName={selectedStudent?.name}
+          onSaved={refreshStudentPerformance}
+        />
+      </div>
+    </div>
   );
 }
