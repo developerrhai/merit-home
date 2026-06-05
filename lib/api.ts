@@ -10,6 +10,7 @@
  */
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "https://institute-api.rhaitech.online/api";
+const BASE = RAW_BASE.replace(/\/+$/, "");
 
 /* ── token helpers ──────────────────────────────────────── */
 export const getToken = () =>
