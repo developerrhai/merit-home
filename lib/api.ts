@@ -86,6 +86,8 @@ export const studentsApi = {
 
   getOne: (id: string | number) => get(`/students/${id}`),
 
+  getById: (id: string | number) => get(`/students/${id}`),
+
   create: (data: Record<string, unknown>) => post("/students", data),
 
   update: (id: string | number, data: Record<string, unknown>) =>
@@ -150,16 +152,17 @@ export const inquiriesApi = {
 ══════════════════════════════════════════════════════════ */
 export const inquiryExtraApi = {
   getAll: () => get("/inquiry-extra"),
- 
-  create: (payload: Record<string, unknown>) => post("/inquiry-extra", payload),
- 
-  // ✅ AFTER — use `put` like every other API in your file
-  update: (id: number, payload: Record<string, unknown>) =>
-  put(`/inquiry-extra/${id}`, payload),
 
-  remove: (id: number) => del(`/inquiry-extra/${id}`),  // ← add this
+  // create: async (payload: object) => {
+  //   const res = await fetch("/api/inquiry-extra", {
+  //     method: "POST",
+  //     headers: { "Content-Type": "application/json" },
+  //     body: JSON.stringify(payload),
+  //   });
+  //   return res.json();
+  // },
+   create: (payload: Record<string, unknown>) => post("/inquiry-extra", payload),
 };
- 
 
 /* ══════════════════════════════════════════════════════════
    APPOINTMENTS
@@ -244,8 +247,19 @@ export const dashboardApi = {
 export const teacherStudentAssessmentsApi = {
   getLatestAll: () => get("/teacher-student-assessments"),
   getByStudent: (studentId: string | number) => get(`/teacher-student-assessments/${studentId}`),
-   createByStudent: (studentId: string | number, data: Record<string, unknown>) =>
+  createByStudent: (studentId: string | number, data: Record<string, unknown>) =>
     post(`/teacher-student-assessments/${studentId}`, data),
+};
+
+export const studentAttendanceApi = {
+  getByStudent: (studentId: string | number) => get(`/student-attendance/${studentId}`),
+  createByStudent: (studentId: string | number, data: Record<string, unknown>) =>
+    post(`/student-attendance/${studentId}`, data),
+};
+
+export const studentRankHistoryApi = {
+  getByStudent: (studentId: string | number) => get(`/student-rank-history/${studentId}`),
+  snapshotAll: () => post("/student-rank-history/snapshot", {}),
 };
 
 
