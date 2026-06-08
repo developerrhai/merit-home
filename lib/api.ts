@@ -250,6 +250,10 @@ export const teacherStudentAssessmentsApi = {
   getByStudent: (studentId: string | number) => get(`/teacher-student-assessments/${studentId}`),
   createByStudent: (studentId: string | number, data: Record<string, unknown>) =>
     post(`/teacher-student-assessments/${studentId}`, data),
+  update: (assessmentId: string | number, data: Record<string, unknown>) =>
+    put(`/teacher-student-assessments/${assessmentId}`, data),
+  remove: (assessmentId: string | number) =>
+    del(`/teacher-student-assessments/${assessmentId}`),
 };
 
 export const studentAttendanceApi = {

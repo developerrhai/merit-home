@@ -2,7 +2,7 @@
 
 import {
   Home, User, UserPlus, GraduationCap, Users,
-  Receipt, ClipboardList, Calendar, Wallet, LogOut, Menu, X
+  Receipt, ClipboardList, Calendar, Wallet, LogOut, Menu, X, Award
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
@@ -16,6 +16,7 @@ export type SectionType =
   | "students"
   | "studentManagement"
   | "inquiryStudents"
+  | "studentMarks"
   | "teachers"
   | "teacherManagement"
   | "teacherUpdates"
@@ -129,7 +130,7 @@ export function Sidebar({
           // 👉 Students Dropdown — Student Management + Inquiry Students
           if (item.id === "students") {
             const isStudentActive =
-              activeSection === "studentManagement" || activeSection === "inquiryStudents"
+              activeSection === "studentManagement" || activeSection === "inquiryStudents" || activeSection === "studentMarks"
             return (
               <div key={item.id}>
                 <button
@@ -170,6 +171,15 @@ export function Sidebar({
                       )}
                     >
                       Inquiry Students
+                    </button>
+                    <button
+                      onClick={() => { onSectionChange("studentMarks"); setMobileOpen(false) }}
+                      className={cn(
+                        "block w-full text-left px-3 py-2 text-sm hover:text-amber-400",
+                        activeSection === "studentMarks" ? "text-amber-400" : "text-slate-300"
+                      )}
+                    >
+                      Student Marks
                     </button>
                   </div>
                 )}

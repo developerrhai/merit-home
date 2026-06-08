@@ -14,6 +14,7 @@ import { InquiryStudentsContent }         from "@/components/dashboard/InquirySt
 import { AppointmentsContent }            from "@/components/dashboard/appointments-content"
 import { FinanceContent }                 from "@/components/dashboard/finance-content"
 import { TeacherUpdatesContent }          from "@/components/dashboard/teacher-updates"
+import { StudentMarksContent }            from "@/components/dashboard/student-marks-content"
 import { getToken }                       from "@/lib/api"
 import { cn } from "@/lib/utils"
 
@@ -61,6 +62,7 @@ export default function DashboardPage() {
       case "registerUser":      return <RegisterUserContent />
       case "studentManagement": return <StudentsContent />
       case "inquiryStudents":   return <InquiryStudentsContent />
+      case "studentMarks":     return <StudentMarksContent />
       case "teacherManagement": return <TeachersContent />
       case "teacherUpdates":    return <TeacherUpdatesContent />
       case "invoices":          return <InvoicesContent />
