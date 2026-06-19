@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const BACKEND = process.env.BACKEND_URL 
+  ? `${process.env.BACKEND_URL.replace(/\/$/, "")}/api` 
+  : (process.env.NEXT_PUBLIC_API_URL || "https://institute-api.rhaitech.online/api");
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    console.log(
-      "Calling: https://institute-api.rhaitech.online/api/auth/signup"
-    );
+    console.log(`Calling: ${BACKEND}/auth/signup`);
 
     const res = await fetch(
-      "https://institute-api.rhaitech.online/api/auth/signup",
+      `${BACKEND}/auth/signup`,
       {
         method: "POST",
         headers: {

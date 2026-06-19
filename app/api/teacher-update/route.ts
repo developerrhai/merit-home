@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 
-const BACKEND = process.env.BACKEND_URL || "https://institute-api.rhaitech.online/api"
+const BACKEND = process.env.BACKEND_URL 
+  ? `${process.env.BACKEND_URL.replace(/\/$/, "")}/api` 
+  : (process.env.NEXT_PUBLIC_API_URL || "https://institute-api.rhaitech.online/api");
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,7 +18,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const res  = await fetch(`${BACKEND}/api/teacher-updates/public`, {
+    const res  = await fetch(`${BACKEND}/teacher-updates/public`, {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify(body),
