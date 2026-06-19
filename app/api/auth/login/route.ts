@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND = "https://institute-api.rhaitech.online/api";
+const BACKEND_BASE = process.env.BACKEND_URL || "http://localhost:5000";
+const BACKEND = BACKEND_BASE.endsWith("/api") ? BACKEND_BASE : `${BACKEND_BASE}/api`;
 
 export async function POST(request: NextRequest) {
   try {
