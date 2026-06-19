@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Navbar } from "@/components/navbar"
 import { Hero } from "@/components/hero"
 import { About } from "@/components/about"
@@ -12,7 +12,20 @@ import { AuthModal } from "@/components/auth-modal"
 
 export default function Home() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
-  const [authMode, setAuthMode] = useState<"login" | "signup">("login")
+  const [authMode, setAuthMode] = useState<"login" | "signup" | "forgot-password">("login")
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const searchParams = new URLSearchParams(window.location.search)
+      if (searchParams.get("login") === "true") {
+        setAuthMode("login")
+        setIsAuthModalOpen(true)
+        // Clean up URL query param
+        const newUrl = window.location.pathname
+        window.history.replaceState({}, document.title, newUrl)
+      }
+    }
+  }, [])
 
   const openLogin = () => {
     setAuthMode("login")
@@ -36,6 +49,7 @@ export default function Home() {
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         mode={authMode}
+        onSwitchMode={setAuthMode}
       />
     </main>
   )
