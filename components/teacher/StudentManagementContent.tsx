@@ -50,6 +50,7 @@ import {
 } from "@/components/teacher/ui/dialog";
 import { Label } from "@/components/teacher/ui/label";
 import { studentsApi, studentsUniversalApi, teacherStudentAssessmentsApi, studentAttendanceApi } from "@/lib/api";
+import { getSubjects } from "@/lib/notesApi";
 
 type Student = {
   id: number;
@@ -280,6 +281,12 @@ export default function StudentManagementContent() {
   const [bulkSaving, setBulkSaving] = useState(false);
   const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
 
+  // ── Modal local filters & available subjects ────────────────────────────────
+  const [availableSubjects, setAvailableSubjects] = useState<any[]>([]);
+  const [modalLocationFilter, setModalLocationFilter] = useState("all");
+  const [modalBoardFilter, setModalBoardFilter] = useState("all");
+  const [modalStandardFilter, setModalStandardFilter] = useState("all");
+
   // Import state
   const [importOpen, setImportOpen] = useState(false);
   const [importMode, setImportMode] = useState<"students" | "marks">("students");
@@ -300,10 +307,13 @@ export default function StudentManagementContent() {
     const load = async () => {
       setLoading(true);
       try {
-        const [studentsRes, assessmentsRes]: any[] = await Promise.all([
+        const [studentsRes, assessmentsRes, subjectsRes]: any[] = await Promise.all([
           studentsUniversalApi.getAll(),
           teacherStudentAssessmentsApi.getLatestAll(),
+          getSubjects(),
         ]);
+        setAvailableSubjects(subjectsRes?.data || subjectsRes || []);
+        
         const latestMap = new Map<number, AssessmentRow>();
         for (const row of assessmentsRes?.data || []) {
           latestMap.set(Number(row.student_id), row);
@@ -334,6 +344,14 @@ export default function StudentManagementContent() {
     load();
   }, []);
 
+  useEffect(() => {
+    if (bulkOpen) {
+      setModalLocationFilter("all");
+      setModalBoardFilter("all");
+      setModalStandardFilter("all");
+    }
+  }, [bulkOpen]);
+
   const standards = useMemo(() => Array.from(new Set(students.map((s) => s.standard))).filter(Boolean), [students]);
   const boards = useMemo(() => Array.from(new Set(students.map((s) => s.board))).filter(Boolean), [students]);
   const locations = useMemo(() => Array.from(new Set(students.map((s) => s.location))).filter(Boolean), [students]);
@@ -352,6 +370,15 @@ export default function StudentManagementContent() {
       return matchesQuery && matchesStandard && matchesBoard && matchesLocation;
     });
   }, [students, searchTerm, standardFilter, boardFilter, locationFilter]);
+
+  const modalFilteredStudents = useMemo(() => {
+    return students.filter((student) => {
+      const matchesLocation = modalLocationFilter === "all" || student.location === modalLocationFilter;
+      const matchesBoard = modalBoardFilter === "all" || student.board === modalBoardFilter;
+      const matchesStandard = modalStandardFilter === "all" || student.standard === modalStandardFilter;
+      return matchesLocation && matchesBoard && matchesStandard;
+    });
+  }, [students, modalLocationFilter, modalBoardFilter, modalStandardFilter]);
 
   useEffect(() => { setPage(1); }, [searchTerm, standardFilter, boardFilter, locationFilter]);
 
@@ -482,22 +509,21 @@ export default function StudentManagementContent() {
 
   const markAllPresent = () => {
     const next: Record<number, boolean> = {};
-    for (const s of filteredStudents) next[s.id] = true;
+    for (const s of modalFilteredStudents) next[s.id] = true;
     setBulkAttendance((prev) => ({ ...prev, ...next }));
   };
 
   const markAllAbsent = () => {
     const next: Record<number, boolean> = {};
-    for (const s of filteredStudents) next[s.id] = false;
+    for (const s of modalFilteredStudents) next[s.id] = false;
     setBulkAttendance((prev) => ({ ...prev, ...next }));
   };
 
   // Live attendance counts
   const attendanceCounts = useMemo(() => {
-    const present = filteredStudents.filter((s) => getAttendance(s.id)).length;
-    return { present, absent: filteredStudents.length - present };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredStudents, bulkAttendance]);
+    const present = modalFilteredStudents.filter((s) => getAttendance(s.id)).length;
+    return { present, absent: modalFilteredStudents.length - present };
+  }, [modalFilteredStudents, bulkAttendance]);
 
   // ── Import ────────────────────────────────────────────────────────────────
   const handleImportFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -723,7 +749,7 @@ export default function StudentManagementContent() {
     // Only include marks for PRESENT students
     const allEntries: { studentId: number; colId: string; subject: string; marks: number }[] = [];
     for (const col of bulkSubjectCols) {
-      for (const student of filteredStudents) {
+      for (const student of modalFilteredStudents) {
         if (!getAttendance(student.id)) continue; // skip absent students
         const val = getBulkMark(student.id, col.id);
         if (val.trim() === "") continue;
@@ -747,7 +773,7 @@ export default function StudentManagementContent() {
     setBulkSaving(true);
 
     // ── Phase 1: Save marks for present students ────────────────────────
-    const absentStudents = filteredStudents.filter((s) => !getAttendance(s.id));
+    const absentStudents = modalFilteredStudents.filter((s) => !getAttendance(s.id));
     const totalOps = allEntries.length + absentStudents.length;
     setBulkProgress({ done: 0, total: totalOps });
     let done = 0;
@@ -1325,12 +1351,18 @@ export default function StudentManagementContent() {
                       <span className="text-xs text-amber-600 font-medium shrink-0">
                         #{idx + 1}
                       </span>
-                      <Input
+                      <select
                         value={col.subject}
                         onChange={(e) => updateSubjectColName(col.id, e.target.value)}
-                        placeholder="Subject name"
-                        className="h-6 w-36 rounded-full border-amber-300 bg-white text-xs px-2 focus-visible:ring-amber-400"
-                      />
+                        className="h-6 w-36 rounded-full border border-amber-300 bg-white text-xs px-2 focus:outline-none focus:ring-1 focus:ring-amber-400 font-medium"
+                      >
+                        <option value="">Select Subject</option>
+                        {availableSubjects.map((sub) => (
+                          <option key={sub.sub_id} value={sub.name}>
+                            {sub.name}
+                          </option>
+                        ))}
+                      </select>
                       {bulkSubjectCols.length > 1 && (
                         <button
                           type="button"
@@ -1343,6 +1375,54 @@ export default function StudentManagementContent() {
                       )}
                     </div>
                   ))}
+                </div>
+              </div>
+            </div>
+
+            {/* ── Student Filters ───────────────────────────────────────── */}
+            <div className="rounded-xl bg-slate-50 border border-slate-200 p-4 space-y-3">
+              <Label className="text-xs text-slate-500 uppercase tracking-wide">
+                Filter Students List
+              </Label>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Location (Branch)</Label>
+                  <select
+                    className="w-full h-9 rounded-lg border border-input bg-background px-3 text-xs focus:ring-1 focus:ring-primary outline-none transition-all"
+                    value={modalLocationFilter}
+                    onChange={(e) => setModalLocationFilter(e.target.value)}
+                  >
+                    <option value="all">All Locations</option>
+                    {locations.map((loc) => (
+                      <option key={loc} value={loc}>{loc}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Board</Label>
+                  <select
+                    className="w-full h-9 rounded-lg border border-input bg-background px-3 text-xs focus:ring-1 focus:ring-primary outline-none transition-all"
+                    value={modalBoardFilter}
+                    onChange={(e) => setModalBoardFilter(e.target.value)}
+                  >
+                    <option value="all">All Boards</option>
+                    {boards.map((b) => (
+                      <option key={b} value={b}>{b}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Standard</Label>
+                  <select
+                    className="w-full h-9 rounded-lg border border-input bg-background px-3 text-xs focus:ring-1 focus:ring-primary outline-none transition-all"
+                    value={modalStandardFilter}
+                    onChange={(e) => setModalStandardFilter(e.target.value)}
+                  >
+                    <option value="all">All Standards</option>
+                    {standards.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>
@@ -1385,7 +1465,7 @@ export default function StudentManagementContent() {
             </div>
 
             <p className="text-xs text-muted-foreground px-1">
-              Showing {filteredStudents.length} student{filteredStudents.length !== 1 ? "s" : ""} matching current filters.
+              Showing {modalFilteredStudents.length} student{modalFilteredStudents.length !== 1 ? "s" : ""} matching current filters.
               Absent students will not have marks saved. Leave marks blank to skip a student.
             </p>
 
@@ -1420,7 +1500,7 @@ export default function StudentManagementContent() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredStudents.length === 0 ? (
+                  {modalFilteredStudents.length === 0 ? (
                     <TableRow>
                       <TableCell
                         colSpan={4 + bulkSubjectCols.length + (sharedTotalNum !== null ? 1 : 0)}
@@ -1430,7 +1510,7 @@ export default function StudentManagementContent() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredStudents.map((student) => {
+                    modalFilteredStudents.map((student) => {
                       const isPresent = getAttendance(student.id);
 
                       let avgPct: number | null = null;

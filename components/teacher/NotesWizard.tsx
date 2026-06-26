@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowLeft, ChevronRight, Plus, Save, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronRight, Plus, Save, Loader2 } from "lucide-react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -157,6 +158,18 @@ export function NotesWizard() {
 
   return (
     <div className="mx-auto max-w-3xl">
+      {/* Toggle to Dropdown View */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <span className="text-[10px] uppercase font-bold tracking-wider text-primary bg-primary/10 px-2.5 py-1 rounded-full">Interactive Wizard</span>
+        </div>
+        <Link href="/teacherdashboard/notes-dropdown">
+          <Button variant="outline" size="sm" className="rounded-xl flex items-center gap-1.5 h-10">
+            Switch to All-in-One Dropdowns <ArrowRight className="h-4 w-4" />
+          </Button>
+        </Link>
+      </div>
+
       {/* Step header */}
       <div className="flex items-center gap-3 mb-2">
         {step > 1 && (

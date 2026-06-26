@@ -36,14 +36,14 @@ export const getSubjects = async (stand_id: number,  branch_id: number, batch_id
 // ── 6. CHAPTERS & TOPICS ─────────────────────────────────────
 export const getChapters = async (sub_id: number, stand_id: number,  branch_id: number, batch_id: number, board_id: number) => {
   // Simplified: sub_id uniquely identifies the path
-  const res = await api.get(`/chapters/filter?sub_id=${sub_id}?stand_id=${stand_id}&branch_id=${branch_id}&batch_id=${batch_id}&board_id=${board_id}`);
+  const res = await api.get(`/chapters/filter?sub_id=${sub_id}&stand_id=${stand_id}&branch_id=${branch_id}&batch_id=${batch_id}&board_id=${board_id}`);
   return res.data;
 };
 
 // ── 7. NOTES ─────────────────────────────────────────────────
 export const getNotes = async (chap_id: number, sub_id: number, stand_id: number,  branch_id: number, batch_id: number, board_id: number) => {
   // Simplified: chap_id uniquely identifies the chapter
-  const res = await api.get(`/notes/filter?chap_id=${chap_id}?sub_id=${sub_id}?stand_id=${stand_id}&branch_id=${branch_id}&batch_id=${batch_id}&board_id=${board_id}`);
+  const res = await api.get(`/notes/filter?chap_id=${chap_id}&sub_id=${sub_id}&stand_id=${stand_id}&branch_id=${branch_id}&batch_id=${batch_id}&board_id=${board_id}`);
   return res.data;
 };
 

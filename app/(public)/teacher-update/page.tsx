@@ -84,7 +84,7 @@ export default function TeacherUpdatePage() {
     setError("")
     setSubmitting(true)
     try {
-      const res  = await fetch("https://institute-api.rhaitech.online/api/teacher-updates/public", {
+      const res  = await fetch("/api/teacher-update", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify(form),

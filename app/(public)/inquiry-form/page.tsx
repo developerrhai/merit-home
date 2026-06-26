@@ -125,39 +125,10 @@ export default function InquiryFormPage() {
   setError("")
   setSubmitting(true)
   try {
-   const payload = {
-  name: form.studentName,             // maps to 'name'
-  phone: form.studentContact,         // maps to 'phone'
-  father_name: "",                    // add a field for parent's name if needed
-  father_phone: form.parentContact,   // maps to 'father_phone'
-  course: form.batch,                 // you can use 'batch' or 'course'
-  location: "",                        // add location field if needed
-  board: "",                            // optional
-  standard: form.standard,
-  status: "New",
-  video: "",                           // optional
-  dob: form.dob,
-  email: form.email,
-  address: form.address,
-  college_name: form.collegeName,
-  college_timing: form.collegeTiming,
-  last_exam_marks: form.lastExamMarks,
-  father_occupation: form.fatherOccupation,
-  mother_occupation: form.motherOccupation,
-  future_plans: form.futurePlans,
-  reference: form.reference,
-  sibling_name: form.siblingName,
-  sex: form.sex,
-  taking_coaching: form.takingCoaching,
-  hostel_required: form.hostelRequired,
-  admin_id: 0,                        // default
-  // inquiry_date will default to current date in DB
-}
-
-    const res = await fetch("https://institute-api.rhaitech.online/api/inquiries/public", {
+    const res = await fetch("/api/inquiry", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(form),
     })
     const data = await res.json()
     if (data.success) {
