@@ -16,6 +16,9 @@ export async function POST(request: NextRequest) {
       board,
       standard,
       location,
+      email,
+      course,
+      subjects,
     } = body;
 
     // ✅ Validation
@@ -43,6 +46,9 @@ export async function POST(request: NextRequest) {
       board,
       standard,
       location,
+      email: email || "",
+      course: course || "",
+      subjects: subjects || [],
     };
 
     // ✅ Correct backend call
