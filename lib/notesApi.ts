@@ -27,7 +27,11 @@ export const getStandards = async (board_id: number, batch_id: number, branch_id
 };
 
 // ── 5. SUBJECTS ──────────────────────────────────────────────
-export const getSubjects = async (stand_id: number,  branch_id: number, batch_id: number, board_id: number)=> {
+export const getSubjects = async (stand_id?: number,  branch_id?: number, batch_id?: number, board_id?: number)=> {
+  if (stand_id === undefined) {
+    const res = await api.get("/subjects");
+    return res.data;
+  }
   // Simplified: stand_id inherently knows its Board and Batch
   const res = await api.get(`/subjects/filter?stand_id=${stand_id}&branch_id=${branch_id}&batch_id=${batch_id}&board_id=${board_id}`);
   return res.data;

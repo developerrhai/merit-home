@@ -122,8 +122,8 @@ export function InquiryContent() {
               <SelectTrigger><SelectValue placeholder="All Standards" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Standards</SelectItem>
-                {Array.from({length:12},(_,i)=>(
-                  <SelectItem key={i+1} value={String(i+1)}>{i+1}th Standard</SelectItem>
+                {["8th", "9th", "10th", "11th", "12th", "Dropper", "Other"].map(std => (
+                  <SelectItem key={std} value={std}>{std}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -196,7 +196,7 @@ export function InquiryContent() {
             {[
               { key:"location", label:"Location", items:["Chinchwad","Wakad","Thergaon"] },
               { key:"board",    label:"Board",    items:["CBSE","ICSE","State"] },
-              { key:"standard", label:"Standard", items: Array.from({length:12},(_,i)=>String(i+1)) },
+              { key:"standard", label:"Standard", items: ["8th","9th","10th","11th","12th","Dropper","Other"] },
               { key:"status",   label:"Status",   items:["New","Contacted","Follow Up","Admission Done","Not Interested"] },
             ].map(({ key, label, items }) => (
               <div key={key} className="space-y-2">

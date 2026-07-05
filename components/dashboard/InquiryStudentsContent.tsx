@@ -100,22 +100,6 @@ const STATUS_STYLES: Record<string, string> = {
   Maybe:     "bg-blue-50 border-blue-200 text-blue-600",
 }
 
-// ── Delete ──
-const handleDelete = async (id: number) => {
-  if (!confirm("Are you sure you want to delete this inquiry? This action cannot be undone.")) return
-  try {
-    const data: any = await inquiryExtraApi.remove(id) 
-    if (data.success) {
-      setInquiries(prev => prev.filter(i => i.id !== id))
-      if (selected?.id === id) setSelected(null)
-    } else {
-      alert(data.message || "Failed to delete inquiry.")
-    }
-  } catch {
-    alert("Network error. Please try again.")
-  }
-}
-
 const STATUS_DOT: Record<string, string> = {
   Confirmed: "bg-green-500",
   Pending:   "bg-yellow-400",
@@ -249,6 +233,22 @@ export function InquiryStudentsContent() {
   }, [])
 
   useEffect(() => { fetchInquiries() }, [fetchInquiries])
+
+  // ── Delete ──
+  const handleDelete = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this inquiry? This action cannot be undone.")) return
+    try {
+      const data: any = await inquiryExtraApi.remove(id) 
+      if (data.success) {
+        setInquiries(prev => prev.filter(i => i.id !== id))
+        if (selected?.id === id) setSelected(null)
+      } else {
+        alert(data.message || "Failed to delete inquiry.")
+      }
+    } catch {
+      alert("Network error. Please try again.")
+    }
+  }
 
   // ── Responsive listener ──
   useEffect(() => {
@@ -530,7 +530,7 @@ export function InquiryStudentsContent() {
                     </svg>
                     Edit
                   </button>
-                  <button onClick={() => handleDelete(selected.id)}
+                  <button onClick={() => handleDelete(inq.id)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white text-xs font-semibold transition-colors">
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
