@@ -12,10 +12,19 @@ const BATCHES = [
 ]
 
 const STANDARDS = [
-  "1st Standard", "2nd Standard", "3rd Standard",
-  "4th Standard", "5th Standard", "6th Standard",
-  "7th Standard", "8th Standard", "9th Standard",
-  "10th Standard", "11th Standard", "12th Standard",
+  "1st",
+  "2nd",
+  "3rd",
+  "4th",
+  "5th",
+  "6th",
+  "7th",
+  "8th",
+  "9th",
+  "10th",
+  "11th",
+  "12th",
+  "Dropper",
 ]
 
 const REFERENCES = [
