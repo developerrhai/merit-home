@@ -113,9 +113,9 @@ export function InquiryContent() {
               <SelectTrigger><SelectValue placeholder="All Locations" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Locations</SelectItem>
-                <SelectItem value="Chinchwad">Chinchwad</SelectItem>
-                <SelectItem value="Wakad">Wakad</SelectItem>
-                <SelectItem value="Thergaon">Thergaon</SelectItem>
+                <SelectItem value="CHINCHWAD">Chinchwad</SelectItem>
+                <SelectItem value="THERGAON">Thergaon</SelectItem>
+                <SelectItem value="WAKAD">Wakad</SelectItem>
               </SelectContent>
             </Select>
             <Select value={filterStandard} onValueChange={setFilterStandard}>
@@ -194,7 +194,7 @@ export function InquiryContent() {
               </div>
             ))}
             {[
-              { key:"location", label:"Location", items:["Chinchwad","Wakad","Thergaon"] },
+              { key:"location", label:"Location", items:["CHINCHWAD","THERGAON","WAKAD"] },
               { key:"board",    label:"Board",    items:["CBSE","ICSE","State"] },
               { key:"standard", label:"Standard", items: ["1st","2nd","3rd","4th","5th","6th","7th","8th","9th","10th","11th","12th","Dropper","Other"] },
               { key:"status",   label:"Status",   items:["New","Contacted","Follow Up","Admission Done","Not Interested"] },
