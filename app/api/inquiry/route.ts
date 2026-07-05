@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
       father_name: "", // optional
       father_phone: parentContact,
       course: body.batch || "",
-      location: "", // optional
+      location: body.location || "", // optional
       board: "",
       standard: body.standard || "",
       status: "New",

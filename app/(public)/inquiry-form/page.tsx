@@ -11,11 +11,26 @@ const BATCHES = [
   "Online",
 ]
 
+const BRANCHES = [
+  "CHINCHWAD",
+  "THERGAON",
+  "WAKAD",
+]
+
 const STANDARDS = [
-  "1st Standard", "2nd Standard", "3rd Standard",
-  "4rth Standard", "5th Standard", "6th Standard",
-  "7th Standard", "8th Standard", "9th Standard",
-  "10th Standard", "11th Standard", "12th Standard",
+  "1st",
+  "2nd",
+  "3rd",
+  "4th",
+  "5th",
+  "6th",
+  "7th",
+  "8th",
+  "9th",
+  "10th",
+  "11th",
+  "12th",
+  "Dropper",
 ]
 
 const REFERENCES = [
@@ -99,6 +114,7 @@ export default function InquiryFormPage() {
     if (step === 1) {
       if (!form.batch) return "Please select a batch"
       if (!form.standard) return "Please select a standard"
+      if (!form.location) return "Please select a branch"
     }
     if (step === 2) {
       if (!form.address.trim()) return "Address is required"
@@ -301,6 +317,12 @@ export default function InquiryFormPage() {
                     <select value={form.standard} onChange={e => set("standard", e.target.value)} className={selectCls}>
                       <option value="">-- Select Standard --</option>
                       {STANDARDS.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="Select Branch" required>
+                    <select value={form.location} onChange={e => set("location", e.target.value)} className={selectCls}>
+                      <option value="">-- Select Branch --</option>
+                      {BRANCHES.map(b => <option key={b} value={b}>{b}</option>)}
                     </select>
                   </Field>
                   <Field label="Last Exam Marks / Grade %">

@@ -113,17 +113,17 @@ export function InquiryContent() {
               <SelectTrigger><SelectValue placeholder="All Locations" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Locations</SelectItem>
-                <SelectItem value="Chinchwad">Chinchwad</SelectItem>
-                <SelectItem value="Wakad">Wakad</SelectItem>
-                <SelectItem value="Thergaon">Thergaon</SelectItem>
+                <SelectItem value="CHINCHWAD">Chinchwad</SelectItem>
+                <SelectItem value="THERGAON">Thergaon</SelectItem>
+                <SelectItem value="WAKAD">Wakad</SelectItem>
               </SelectContent>
             </Select>
             <Select value={filterStandard} onValueChange={setFilterStandard}>
               <SelectTrigger><SelectValue placeholder="All Standards" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Standards</SelectItem>
-                {Array.from({length:12},(_,i)=>(
-                  <SelectItem key={i+1} value={String(i+1)}>{i+1}th Standard</SelectItem>
+                {["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th", "Dropper", "Other"].map(std => (
+                  <SelectItem key={std} value={std}>{std}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -194,9 +194,9 @@ export function InquiryContent() {
               </div>
             ))}
             {[
-              { key:"location", label:"Location", items:["Chinchwad","Wakad","Thergaon"] },
+              { key:"location", label:"Location", items:["CHINCHWAD","THERGAON","WAKAD"] },
               { key:"board",    label:"Board",    items:["CBSE","ICSE","State"] },
-              { key:"standard", label:"Standard", items: Array.from({length:12},(_,i)=>String(i+1)) },
+              { key:"standard", label:"Standard", items: ["1st","2nd","3rd","4th","5th","6th","7th","8th","9th","10th","11th","12th","Dropper","Other"] },
               { key:"status",   label:"Status",   items:["New","Contacted","Follow Up","Admission Done","Not Interested"] },
             ].map(({ key, label, items }) => (
               <div key={key} className="space-y-2">

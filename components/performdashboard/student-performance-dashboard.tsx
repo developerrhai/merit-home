@@ -561,8 +561,8 @@ import { PerformanceFilters, type PerformanceFiltersValue } from "./performance-
       // if (dashboardData) return dashboardData;
       if (selectedStudent) {
         return buildDashboardData(selectedStudent, filteredHistoryRows, {
-          totalStudents: rankExtras.totalStudents ?? students.length,
           ...rankExtras,
+          totalStudents: rankExtras.totalStudents || students.length,
           ...attendanceExtras,
         });
       }
