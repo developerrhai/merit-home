@@ -1,19 +1,17 @@
-# Frontend
-frontend/node_modules/
-frontend/.next/
-frontend/out/
-frontend/.env.local
-frontend/.env.development.local
-frontend/.env.test.local
-frontend/.env.production.local
-frontend/tsconfig.tsbuildinfo
+# v0 sandbox internal files
+__v0_runtime_loader.js
+__v0_devtools.tsx
+__v0_jsx-dev-runtime.ts
+.snowflake/
+.v0-trash/
+.vercel/
+next.user-config.*
 
-# Backend
-backend/node_modules/
-backend/.env
+# Environment variables
+.env*.local
 
-# General
+# Common ignores
+node_modules
+.next/
 .DS_Store
-*.log
-**/chat-summary.md
-**/merit-home-info.md
+.vercel
