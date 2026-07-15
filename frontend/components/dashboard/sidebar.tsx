@@ -24,6 +24,7 @@ export type SectionType =
   | "inquiry"
   | "appointments"
   | "finance"
+  | "attendance"
 
 interface SidebarProps {
   activeSection: SectionType
@@ -38,6 +39,7 @@ const menuItems: { id: SectionType; label: string; icon: React.ReactNode }[] = [
   { id: "registerUser", label: "Register User", icon: <UserPlus className="h-5 w-5" /> },
   { id: "students",     label: "Students",      icon: <GraduationCap className="h-5 w-5" /> },
   { id: "teachers",     label: "Teachers",      icon: <Users className="h-5 w-5" /> },
+  { id: "attendance",   label: "Attendance",    icon: <Award className="h-5 w-5" /> },
   { id: "invoices",     label: "Invoices",      icon: <Receipt className="h-5 w-5" /> },
   { id: "inquiry",      label: "New Inquiry",   icon: <ClipboardList className="h-5 w-5" /> },
   { id: "appointments", label: "Appointments",  icon: <Calendar className="h-5 w-5" /> },

@@ -2,30 +2,42 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Home, Settings, Sparkles, GraduationCap, LogOut } from "lucide-react";
+import {
+  Home,
+  BookOpen,
+  Receipt,
+  BookMarked,
+  LogOut,
+  Sparkles,
+  GraduationCap,
+  Shield,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { clearToken } from "@/lib/api";
+import { useAuthStore } from "@/lib/store";
 
-const items = [
-  { title: "Dashboard", url: "/teacherdashboard", icon: Home },
-  { title: "Teacher (Wizard)", url: "/teacherdashboard/notes", icon: GraduationCap },
-  { title: "Notes (Dropdown)", url: "/teacherdashboard/notes-dropdown", icon: GraduationCap },
-  { title: "Student Management", url: "/teacherdashboard/subjects", icon: BookOpen },
-  { title: "Homework", url: "/teacherdashboard/homework", icon: BookOpen },
-  { title: "Teaching Logs", url: "/teacherdashboard/teaching-logs", icon: BookOpen },
-  { title: "Settings", url: "/teacherdashboard/settings", icon: Settings },
+const navItems = [
+  { title: "Dashboard", url: "/student/dashboard", icon: Home },
+  { title: "My Homework", url: "/student/homework", icon: BookOpen },
+  { title: "Fee Status", url: "/student/fees", icon: Receipt },
+  { title: "Class Logs", url: "/student/class-logs", icon: BookMarked },
+  { title: "Security", url: "/student/change-password", icon: Shield },
 ];
 
-export function DashboardSidebar() {
+export function StudentSidebar() {
   const pathname = usePathname();
-    const handleLogout = () => {
+  const logout = useAuthStore((state) => state.logout);
+
+  const handleLogout = () => {
     clearToken();
+    logout();
     localStorage.removeItem("userInfo");
-    window.location.href = "/";
+    window.location.href = "/student-login";
   };
 
   return (
     <aside className="hidden md:flex w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border">
+      {/* Brand logo */}
       <div className="px-6 py-6 flex items-center gap-2">
         <div
           className="h-9 w-9 rounded-xl grid place-items-center"
@@ -35,13 +47,15 @@ export function DashboardSidebar() {
         </div>
         <div>
           <div className="font-semibold tracking-tight">Merit Home</div>
-          <div className="text-xs text-sidebar-foreground/60">Study smarter</div>
+          <div className="text-xs text-sidebar-foreground/60">Student Portal</div>
         </div>
       </div>
 
+      {/* Navigation links */}
       <nav className="px-3 py-2 flex-1 space-y-1">
-        {items.map((item) => {
-          const active = pathname === item.url;
+        {navItems.map((item) => {
+          // Support both exact match and prefix match for sub-pages
+          const active = pathname === item.url || pathname.startsWith(item.url + "/");
           return (
             <Link
               key={item.url}
@@ -60,13 +74,19 @@ export function DashboardSidebar() {
         })}
       </nav>
 
+      {/* Tip card — matches teacher portal pattern */}
       <div className="m-3 rounded-2xl p-4 bg-sidebar-accent/60 border border-sidebar-border">
-        <div className="text-xs text-sidebar-foreground/70">Pro tip</div>
+        <div className="flex items-center gap-2 text-xs text-sidebar-foreground/70">
+          <GraduationCap className="h-3.5 w-3.5" />
+          Student tip
+        </div>
         <div className="mt-1 text-sm font-medium leading-snug">
-          Organize notes by chapter to revise 3× faster.
+          Check homework daily to stay ahead of your class.
         </div>
       </div>
-       <div className="px-3 pb-3">
+
+      {/* Logout button */}
+      <div className="px-3 pb-3">
         <button
           type="button"
           onClick={handleLogout}

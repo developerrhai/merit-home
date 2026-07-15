@@ -43,6 +43,7 @@ export default function AdmissionFormPage() {
   const [form, setForm]             = useState<FormData>(initial)
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted]   = useState(false)
+  const [credentials, setCredentials] = useState<{loginId: string, tempPassword: string} | null>(null)
   const [error, setError]           = useState("")
   const [touched, setTouched]       = useState<Partial<Record<keyof FormData, boolean>>>({})
 
@@ -126,7 +127,10 @@ export default function AdmissionFormPage() {
         }),
       })
       const data = await res.json()
-      if (data.success) setSubmitted(true)
+      if (data.success) {
+        setCredentials(data.credentials || null)
+        setSubmitted(true)
+      }
       else setError(data.message || "Submission failed. Please try again.")
     } catch {
       setError("Network error. Please check your connection.")
@@ -159,11 +163,40 @@ export default function AdmissionFormPage() {
                 <span className="font-semibold">Subjects:</span> {form.subjects.join(", ")}
               </div>
             )}
+            
+            {credentials && (
+              <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 mb-4 text-left shadow-inner">
+                <p className="text-sm font-bold text-amber-800 mb-2 flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                  SECURE CREDENTIALS GENERATED
+                </p>
+                <p className="text-xs text-amber-700 mb-3">
+                  Please copy and share these with the student securely. They will not be shown again.
+                </p>
+                <div className="grid grid-cols-[80px_1fr] gap-2 text-sm bg-white p-3 rounded-md border border-amber-100">
+                  <span className="font-semibold text-gray-500">Login ID:</span>
+                  <span className="font-mono text-gray-800 break-all">{credentials.loginId}</span>
+                  <span className="font-semibold text-gray-500">Password:</span>
+                  <span className="font-mono font-bold text-emerald-600">{credentials.tempPassword}</span>
+                </div>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(`Login ID: ${credentials.loginId} | Password: ${credentials.tempPassword}`);
+                    alert("Copied to clipboard!");
+                  }}
+                  className="w-full mt-3 flex items-center justify-center gap-2 bg-[#0d6efd] hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-medium transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                  Copy Credentials
+                </button>
+              </div>
+            )}
+
             <div className="bg-blue-50 rounded-2xl p-4 text-sm text-blue-700 font-medium">
               Merit home Learning center · {form.branch} Branch
             </div>
             <button
-              onClick={() => { setForm(initial); setTouched({}); setSubmitted(false) }}
+              onClick={() => { setForm(initial); setTouched({}); setSubmitted(false); setCredentials(null); }}
               className="mt-6 text-sm text-gray-400 hover:text-gray-600 underline transition-colors"
             >
               Submit another form

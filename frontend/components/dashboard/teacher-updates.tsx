@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
 import { 
   ChevronRight, ChevronDown, MapPin, Users, BookOpen, 
-  GraduationCap, User, Clock, X, Search, Calendar
+  GraduationCap, User, Clock, X, Search, Calendar, AlertTriangle, Info, CheckCircle
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import api from "@/lib/service";
+import { teachingLogsApi } from "@/lib/api";
 
 // --- Data Organization Logic (Unchanged) ---
 const organizeData = (rows: any[]) => {
@@ -37,11 +40,16 @@ const organizeData = (rows: any[]) => {
 };
 
 export function TeacherUpdatesContent() {
+  const [activeTab, setActiveTab] = useState<"logs" | "schedule">("logs");
   const [nestedData, setNestedData] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ currentPage: 1, totalPages: 1, totalItems: 0 });
   
-  // 1. Updated Filter State
+  // Daily Logs & Alerts
+  const [overview, setOverview] = useState<any>(null);
+  const [loadingOverview, setLoadingOverview] = useState(true);
+
+  // 1. Filter State (For schedule tab)
   const [filters, setFilters] = useState({ 
     teacher_name: "", 
     branch_name: "", 
@@ -62,8 +70,8 @@ export function TeacherUpdatesContent() {
     teachers: [], 
     branches: [], 
     subjects: [],
-    standards: [], // New
-    boards: []     // New
+    standards: [],
+    boards: []
   });
 
   useEffect(() => {
@@ -73,8 +81,8 @@ export function TeacherUpdatesContent() {
           api.get("/teachers"), 
           api.get("/branches"), 
           api.get("/subjects"),
-          api.get("/standards"), // Ensure these endpoints exist
-          api.get("/boards")     // Ensure these endpoints exist
+          api.get("/standards"), 
+          api.get("/boards")     
         ]);
         setOptions({
           teachers: tRes.data.data || [],
@@ -88,10 +96,27 @@ export function TeacherUpdatesContent() {
     fetchOptions();
   }, []);
 
+  const fetchOverview = async () => {
+    setLoadingOverview(true);
+    try {
+      const res = await teachingLogsApi.getOverview();
+      setOverview(res.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingOverview(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "logs") {
+      fetchOverview();
+    }
+  }, [activeTab]);
+
   const fetchChain = async (page = 1) => {
     try {
       setLoading(true);
-      // Constructing params - URLSearchParams handles empty values automatically
       const cleanFilters = Object.fromEntries(Object.entries(filters).filter(([_, v]) => v !== ""));
       const params = new URLSearchParams({ 
         page: page.toString(), 
@@ -107,7 +132,11 @@ export function TeacherUpdatesContent() {
     } catch (err) { console.error(err); } finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchChain(pagination.currentPage); }, [pagination.currentPage, filters]);
+  useEffect(() => { 
+    if (activeTab === "schedule") {
+      fetchChain(pagination.currentPage); 
+    }
+  }, [pagination.currentPage, filters, activeTab]);
 
   const resetFilters = () => {
     setFilters({ 
@@ -124,104 +153,225 @@ export function TeacherUpdatesContent() {
             <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600"><GraduationCap size={24}/></div>
             Teacher updates
           </h2>
-          <p className="text-slate-500 text-sm mt-1 font-medium tracking-tight">Advanced Teacher & Batch Analytics</p>
-        </div>
-        <Badge variant="outline" className="bg-slate-50 border-slate-200 text-slate-600 px-3 py-1 rounded-full">
-          {pagination.totalItems} Results
-        </Badge>
-      </div>
-
-      {/* --- Advanced Filter Bar --- */}
-      <div className="flex flex-col gap-4 mb-10 p-4 bg-slate-50/50 rounded-2xl border border-slate-100">
-        <div className="flex flex-wrap items-center gap-3">
-          <FilterDropdown label="Branch" value={filters.branch_name} options={options.branches.map((b: any) => b.branch_name)} onChange={(v: string) => setFilters({...filters, branch_name: v})} />
-          <FilterDropdown label="Teacher" value={filters.teacher_name} options={options.teachers.map((t: any) => t.name)} onChange={(v: string) => setFilters({...filters, teacher_name: v})} />
-          <FilterDropdown label="Subject" value={filters.subject_name} options={[...new Set(options.subjects.map((s: any) => s.name))]} onChange={(v: string) => setFilters({...filters, subject_name: v})} />
-          <FilterDropdown label="Standard" value={filters.standard_name} options={options.standards.map((s: any) => s.name)} onChange={(v: string) => setFilters({...filters, standard_name: v})} />
-          <FilterDropdown label="Board" value={filters.board_name} options={options.boards.map((b: any) => b.name)} onChange={(v: string) => setFilters({...filters, board_name: v})} />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3 border-t border-slate-100 pt-3">
-          <div className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-1.5 rounded-xl">
-            <Calendar size={14} className="text-slate-400" />
-            <span className="text-[10px] font-bold text-slate-400 uppercase">Batch Start After:</span>
-            <input 
-              type="date" 
-              className="text-xs font-bold text-slate-600 outline-none bg-transparent"
-              value={filters.start_date}
-              onChange={(e) => setFilters({...filters, start_date: e.target.value})}
-            />
-          </div>
-          <div className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-1.5 rounded-xl">
-            <Calendar size={14} className="text-slate-400" />
-            <span className="text-[10px] font-bold text-slate-400 uppercase">Batch End Before:</span>
-            <input 
-              type="date" 
-              className="text-xs font-bold text-slate-600 outline-none bg-transparent"
-              value={filters.end_date}
-              onChange={(e) => setFilters({...filters, end_date: e.target.value})}
-            />
-          </div>
-          {Object.values(filters).some(x => x !== "") && (
-            <Button variant="ghost" size="sm" onClick={resetFilters} className="text-rose-500 hover:bg-rose-50 h-9">
-              <X size={14} className="mr-1" /> Reset Filters
-            </Button>
-          )}
+          <p className="text-slate-500 text-sm mt-1 font-medium tracking-tight">Monitor daily teaching logs, homework, and session schedule.</p>
         </div>
       </div>
 
-      {loading ? (
-        <div className="space-y-4 animate-pulse">
-          {[1,2,3].map(i => <div key={i} className="h-20 bg-slate-50 rounded-xl" />)}
-        </div>
+      {/* Tabs */}
+      <div className="flex gap-4 mb-6 border-b pb-1">
+        <button
+          onClick={() => setActiveTab("logs")}
+          className={`pb-2.5 text-sm font-semibold tracking-tight transition-all border-b-2 px-1 ${
+            activeTab === "logs" 
+              ? "border-emerald-500 text-emerald-600" 
+              : "border-transparent text-slate-500 hover:text-slate-700"
+          }`}
+        >
+          Daily Logs & Alerts
+        </button>
+        <button
+          onClick={() => setActiveTab("schedule")}
+          className={`pb-2.5 text-sm font-semibold tracking-tight transition-all border-b-2 px-1 ${
+            activeTab === "schedule" 
+              ? "border-emerald-500 text-emerald-600" 
+              : "border-transparent text-slate-500 hover:text-slate-700"
+          }`}
+        >
+          Teacher Attendance Analytics
+        </button>
+      </div>
+
+      {activeTab === "logs" ? (
+        // --- Tab 1: Daily Logs & Alerts View ---
+        loadingOverview ? (
+          <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+        ) : (
+          <div className="space-y-6">
+            {/* Quick Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card className="border border-emerald-100 bg-emerald-50/20">
+                <CardHeader className="pb-2">
+                  <span className="text-xs font-semibold text-emerald-700 uppercase tracking-wider">Logs Submitted Today</span>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold text-emerald-800">{overview?.todayLogsCount || 0}</p>
+                </CardContent>
+              </Card>
+
+              <Card className="border border-rose-100 bg-rose-50/20">
+                <CardHeader className="pb-2">
+                  <span className="text-xs font-semibold text-rose-700 uppercase tracking-wider">Unchecked Homework (3d+)</span>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold text-rose-800">{overview?.alerts?.staleHomework?.length || 0}</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Action Required Alerts */}
+            {(overview?.alerts?.missingLogsToday?.length > 0 || overview?.alerts?.staleHomework?.length > 0 || overview?.alerts?.unmappedTeachers?.length > 0) && (
+              <div className="space-y-3 p-4 bg-amber-50/50 border border-amber-200 rounded-2xl">
+                <h3 className="text-sm font-bold text-amber-800 flex items-center gap-1.5">
+                  <AlertTriangle className="h-4.5 w-4.5 text-amber-600" /> Action Required Alerts
+                </h3>
+                
+                {overview?.alerts?.missingLogsToday?.length > 0 && (
+                  <div className="text-xs text-amber-700 space-y-1 ml-6 list-disc">
+                    <p className="font-semibold">Missing Daily Logs Today for:</p>
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {overview.alerts.missingLogsToday.map((b: string) => (
+                        <Badge key={b} variant="outline" className="bg-amber-100/50 border-amber-200 text-amber-800">{b}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {overview?.alerts?.staleHomework?.length > 0 && (
+                  <div className="text-xs text-amber-700 space-y-1.5 ml-6 mt-3">
+                    <p className="font-semibold">Homework Assigned 3+ Days Ago with 0 Status Updates:</p>
+                    <ul className="list-disc space-y-1 pl-4">
+                      {overview.alerts.staleHomework.map((hw: any) => (
+                        <li key={hw.id}>
+                          <strong>{hw.subject}</strong>: "{hw.title}" in <span className="font-semibold">{hw.batch}</span> (Assigned by: {hw.teacher_name})
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {overview?.alerts?.unmappedTeachers?.length > 0 && (
+                  <div className="text-xs text-amber-700 space-y-1 ml-6 mt-3">
+                    <p className="font-semibold">Teachers with No Batch Mappings (They cannot assign homework or create logs):</p>
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {overview.alerts.unmappedTeachers.map((t: any) => (
+                        <Badge key={t.id} variant="outline" className="bg-rose-100/50 border-rose-200 text-rose-800">{t.name}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Today's Teaching Logs Table */}
+            <Card className="shadow-sm border-border/60">
+              <CardHeader className="pb-3"><CardTitle className="text-base font-semibold">Today's Class Entries</CardTitle></CardHeader>
+              <CardContent>
+                {overview?.todayLogs?.length === 0 ? (
+                  <p className="text-muted-foreground text-sm text-center py-6">No class entries logged today yet.</p>
+                ) : (
+                  <div className="rounded-lg border overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/40">
+                          <TableHead>Teacher</TableHead>
+                          <TableHead>Batch</TableHead>
+                          <TableHead>Subject</TableHead>
+                          <TableHead>Topic Covered</TableHead>
+                          <TableHead>Remarks</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {overview?.todayLogs?.map((log: any) => (
+                          <TableRow key={log.id} className="hover:bg-muted/20">
+                            <TableCell className="font-semibold text-slate-800">{log.teacher_name}</TableCell>
+                            <TableCell><Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-100">{log.batch}</Badge></TableCell>
+                            <TableCell className="font-medium text-slate-700">{log.subject}</TableCell>
+                            <TableCell className="text-slate-700">{log.topic}</TableCell>
+                            <TableCell className="text-muted-foreground max-w-[200px] truncate" title={log.notes}>{log.notes || "—"}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )
       ) : (
-        <div className="space-y-6">
-          {Object.entries(nestedData).map(([name, branch]) => (
-            <BranchNode key={name} name={name} batches={branch.batches} />
-          ))}
-          {Object.keys(nestedData).length === 0 && (
-            <div className="text-center py-20 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
-              <Search className="mx-auto text-slate-300 mb-2" size={32} />
-              <p className="text-slate-500 font-medium">No results found for selected filters.</p>
+        // --- Tab 2: Attendance Schedule Analytics (Original) ---
+        <>
+          <div className="flex flex-col gap-4 mb-10 p-4 bg-slate-50/50 rounded-2xl border border-slate-100">
+            <div className="flex flex-wrap items-center gap-3">
+              <FilterDropdown label="Branch" value={filters.branch_name} options={options.branches.map((b: any) => b.branch_name)} onChange={(v: string) => setFilters({...filters, branch_name: v})} />
+              <FilterDropdown label="Teacher" value={filters.teacher_name} options={options.teachers.map((t: any) => t.name)} onChange={(v: string) => setFilters({...filters, teacher_name: v})} />
+              <FilterDropdown label="Subject" value={filters.subject_name} options={[...new Set(options.subjects.map((s: any) => s.name))]} onChange={(v: string) => setFilters({...filters, subject_name: v})} />
+              <FilterDropdown label="Standard" value={filters.standard_name} options={options.standards.map((s: any) => s.name)} onChange={(v: string) => setFilters({...filters, standard_name: v})} />
+              <FilterDropdown label="Board" value={filters.board_name} options={options.boards.map((b: any) => b.name)} onChange={(v: string) => setFilters({...filters, board_name: v})} />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 border-t border-slate-100 pt-3">
+              <div className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-1.5 rounded-xl">
+                <Calendar size={14} className="text-slate-400" />
+                <span className="text-[10px] font-bold text-slate-400 uppercase">Batch Start After:</span>
+                <input 
+                  type="date" 
+                  className="text-xs font-bold text-slate-600 outline-none bg-transparent"
+                  value={filters.start_date}
+                  onChange={(e) => setFilters({...filters, start_date: e.target.value})}
+                />
+              </div>
+              <div className="flex items-center gap-2 bg-white border border-slate-200 px-3 py-1.5 rounded-xl">
+                <Calendar size={14} className="text-slate-400" />
+                <span className="text-[10px] font-bold text-slate-400 uppercase">Batch End Before:</span>
+                <input 
+                  type="date" 
+                  className="text-xs font-bold text-slate-600 outline-none bg-transparent"
+                  value={filters.end_date}
+                  onChange={(e) => setFilters({...filters, end_date: e.target.value})}
+                />
+              </div>
+              {Object.values(filters).some(x => x !== "") && (
+                <Button variant="ghost" size="sm" onClick={resetFilters} className="text-rose-500 hover:bg-rose-50 h-9">
+                  <X size={14} className="mr-1" /> Reset Filters
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="space-y-4 animate-pulse">
+              {[1,2,3].map(i => <div key={i} className="h-20 bg-slate-50 rounded-xl" />)}
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {Object.entries(nestedData).map(([name, branch]) => (
+                <BranchNode key={name} name={name} batches={branch.batches} />
+              ))}
+              {Object.keys(nestedData).length === 0 && (
+                <div className="text-center py-20 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                  <Search className="mx-auto text-slate-300 mb-2" size={32} />
+                  <p className="text-slate-500 font-medium">No results found for selected filters.</p>
+                </div>
+              )}
             </div>
           )}
-        </div>
-      )}
 
-      {/* Pagination (Unchanged) */}
-      <div className="mt-16 pt-8 border-t border-slate-100 flex items-center justify-center gap-4">
-        <Button variant="ghost" size="sm" disabled={pagination.currentPage === 1} onClick={() => setPagination(p => ({...p, currentPage: p.currentPage-1}))}>Previous</Button>
-        <span className="text-xs font-bold text-slate-300 uppercase tracking-widest">Page {pagination.currentPage} / {pagination.totalPages}</span>
-        <Button variant="ghost" size="sm" disabled={pagination.currentPage === pagination.totalPages} onClick={() => setPagination(p => ({...p, currentPage: p.currentPage+1}))}>Next</Button>
-      </div>
+          {/* Pagination */}
+          <div className="mt-16 pt-8 border-t border-slate-100 flex items-center justify-center gap-4">
+            <Button variant="ghost" size="sm" disabled={pagination.currentPage === 1} onClick={() => setPagination(p => ({...p, currentPage: p.currentPage-1}))}>Previous</Button>
+            <span className="text-xs font-bold text-slate-300 uppercase tracking-widest">Page {pagination.currentPage} / {pagination.totalPages}</span>
+            <Button variant="ghost" size="sm" disabled={pagination.currentPage === pagination.totalPages} onClick={() => setPagination(p => ({...p, currentPage: p.currentPage+1}))}>Next</Button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
-// --- Sub-Components (BranchNode, BatchNode, SubjectNode) stay the same as previous response ---
-
-interface FilterDropdownProps {
-  label: string;
-  value: string;
-  options: string[];
-  onChange: (v: string) => void;
+// Helper Loader component
+function Loader2({ className, ...props }: any) {
+  return <Loader2Icon className={`animate-spin ${className}`} {...props} />;
 }
-
-function FilterDropdown({ label, value, options, onChange }: FilterDropdownProps) {
+function Loader2Icon(props: any) {
   return (
-    <select 
-      value={value} 
-      onChange={(e) => onChange(e.target.value)}
-      className="bg-white border border-slate-200 text-xs font-bold text-slate-600 px-3 py-2 rounded-xl outline-none focus:ring-2 ring-emerald-100 transition-all cursor-pointer min-w-[140px]"
-    >
-      <option value="">All {label}s</option>
-      {options.map((o: any) => <option key={o} value={o}>{o}</option>)}
-    </select>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+    </svg>
   );
 }
 
-// ... Include the BranchNode, BatchNode, and SubjectNode components from previous code ...
-// --- Sub-Components with Collapse Logic ---
+// --- Sub-Components (BranchNode, BatchNode, SubjectNode) ---
 
 function BranchNode({ name, batches }: { name: string; batches: any }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -255,7 +405,6 @@ function BranchNode({ name, batches }: { name: string; batches: any }) {
 function BatchNode({ name, batch }: { name: string; batch: any }) {
   const [isExpanded, setIsExpanded] = useState(true);
 
-  // Helper to format dates cleanly
   const formatDate = (dateString: any) => {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
@@ -275,13 +424,11 @@ function BatchNode({ name, batch }: { name: string; batch: any }) {
         <Users size={18} className={`${isExpanded ? 'text-blue-500' : 'text-slate-300'} transition-colors`} />
         <span className="font-bold text-slate-700 group-hover:text-blue-600 transition-colors">{name}</span>
         
-        {/* Time Badge */}
         <div className="flex items-center gap-1.5 text-[10px] font-mono bg-slate-50 px-2 py-0.5 rounded text-slate-400 border border-slate-100">
           <Clock size={10} />
           {batch.details?.start_time?.slice(0, 5)} - {batch.details?.end_time?.slice(0, 5)}
         </div>
 
-        {/* Date Range Badge */}
         <div className="flex items-center gap-1.5 text-[10px] font-mono bg-blue-50/50 px-2 py-0.5 rounded text-blue-500 border border-blue-100/50">
           <Calendar size={10} />
           {formatDate(batch.details?.start_date)} — {formatDate(batch.details?.end_date)}
@@ -309,7 +456,7 @@ function BatchNode({ name, batch }: { name: string; batch: any }) {
 }
 
 function SubjectNode({ name, sub }: { name: string; sub: any }) {
-  const [isExpanded, setIsExpanded] = useState(false); // Sub-levels collapsed by default for cleanliness
+  const [isExpanded, setIsExpanded] = useState(false);
 
   return (
     <div className="relative group">
@@ -353,6 +500,22 @@ function SubjectNode({ name, sub }: { name: string; sub: any }) {
   );
 }
 
+interface FilterDropdownProps {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (v: string) => void;
+}
 
-
-
+function FilterDropdown({ label, value, options, onChange }: FilterDropdownProps) {
+  return (
+    <select 
+      value={value} 
+      onChange={(e) => onChange(e.target.value)}
+      className="bg-white border border-slate-200 text-xs font-bold text-slate-600 px-3 py-2 rounded-xl outline-none focus:ring-2 ring-emerald-100 transition-all cursor-pointer min-w-[140px]"
+    >
+      <option value="">All {label}s</option>
+      {options.map((o: any) => <option key={o} value={o}>{o}</option>)}
+    </select>
+  );
+}
