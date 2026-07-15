@@ -9,12 +9,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { GraduationCap, Search, Eye, Trash2, Phone, User, MapPin, BookOpen, Loader2, IndianRupee, Pencil, FileSpreadsheet, Upload } from "lucide-react"
+import { GraduationCap, Search, Eye, Trash2, Phone, User, MapPin, BookOpen, Loader2, IndianRupee, Pencil, FileSpreadsheet, Upload, Key } from "lucide-react"
 import { studentsApi, studentsUniversalApi } from "@/lib/api"
 import * as XLSX from "xlsx"
 
 interface Student {
-  id: number; name: string; phone: string; father_name: string; father_phone: string
+  id: number; name: string; email?: string; phone: string; father_name: string; father_phone: string
   board: string; standard: string; course: string; location: string; fee: number; paid_fee: number
   subjects: string[]
 }
@@ -59,6 +59,16 @@ export function StudentsContent() {
   const [payAmount,    setPayAmount]    = useState("")
   const [payMode,      setPayMode]      = useState<"add" | "set">("add")
   const [paySaving,    setPaySaving]    = useState(false)
+
+  // Set Password modal
+  const [passwordStudent, setPasswordStudent] = useState<Student | null>(null)
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false)
+  const [newPassword, setNewPassword] = useState("")
+  const [passwordSaving, setPasswordSaving] = useState(false)
+  const [currentPlainPassword, setCurrentPlainPassword] = useState<string | null>(null)
+  const [fetchingPassword, setFetchingPassword] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [isResetting, setIsResetting] = useState(false)
 
   // ── Load ───────────────────────────────────────────────
   const load = useCallback(async () => {
@@ -144,6 +154,46 @@ export function StudentsContent() {
       setPayModalOpen(false)
     } catch (err: any) { alert(err.message) }
     finally { setPaySaving(false) }
+  }
+
+  // ── Set Password ───────────────────────────────────────
+  const openPasswordModal = async (s: Student) => {
+    setPasswordStudent(s)
+    setNewPassword("")
+    setCurrentPlainPassword(null)
+    setShowPassword(false)
+    setIsResetting(false)
+    setPasswordModalOpen(true)
+    setFetchingPassword(true)
+
+    try {
+      const data = await studentsApi.getPassword(s.id)
+      if (data.success && data.plainTextPassword) {
+        setCurrentPlainPassword(data.plainTextPassword)
+      } else {
+        setCurrentPlainPassword("Unencrypted or Not set")
+      }
+    } catch {
+      setCurrentPlainPassword("Error fetching password")
+    } finally {
+      setFetchingPassword(false)
+    }
+  }
+
+  const handleSetPassword = async () => {
+    if (!passwordStudent) return
+    if (!newPassword || newPassword.length < 6) {
+      alert("Password must be at least 6 characters"); return
+    }
+    setPasswordSaving(true)
+    try {
+      const data = await studentsApi.resetPassword(passwordStudent.id, { password: newPassword })
+      if (!data.success) throw new Error(data.message || "Failed to set password")
+      
+      alert("Password updated successfully!")
+      setPasswordModalOpen(false)
+    } catch (err: any) { alert(err.message) }
+    finally { setPasswordSaving(false) }
   }
 
   // ── Export ─────────────────────────────────────────────
@@ -481,6 +531,12 @@ export function StudentsContent() {
                               title="Record payment"
                               onClick={() => openPayModal(s)}>
                               <IndianRupee className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="outline"
+                              className="h-8 w-8 p-0 text-purple-600 hover:text-purple-700 hover:border-purple-300"
+                              title="Manage Password"
+                              onClick={() => openPasswordModal(s)}>
+                              <Key className="h-4 w-4" />
                             </Button>
                             <Button size="sm" variant="destructive" className="h-8 w-8 p-0"
                               onClick={() => handleDelete(s.id)}>
@@ -843,6 +899,78 @@ export function StudentsContent() {
               Confirm Payment
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* ── Manage Password Modal ────────────────────────────── */}
+      <Dialog open={passwordModalOpen} onOpenChange={setPasswordModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Key className="h-5 w-5 text-purple-600" /> Manage Password
+            </DialogTitle>
+          </DialogHeader>
+          {passwordStudent && (
+            <div className="space-y-4 py-2">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted">
+                <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold shrink-0">
+                  {passwordStudent.name.charAt(0)}
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">{passwordStudent.name}</p>
+                  <p className="text-xs text-muted-foreground">{passwordStudent.email || passwordStudent.phone}</p>
+                </div>
+              </div>
+
+              {!isResetting ? (
+                <div className="space-y-4">
+                  <div className="p-4 bg-purple-50 rounded-lg border border-purple-100">
+                    <p className="text-sm font-medium text-purple-800 mb-2">Current Login Password</p>
+                    {fetchingPassword ? (
+                      <div className="flex items-center gap-2 text-sm text-purple-600">
+                        <Loader2 className="w-4 h-4 animate-spin" /> Fetching...
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between bg-white p-3 rounded border">
+                        <code className="text-sm font-mono bg-gray-100 px-2 py-1 rounded select-all text-gray-800">
+                          {showPassword ? currentPlainPassword : "••••••••"}
+                        </code>
+                        <Button variant="ghost" size="sm" className="h-8" onClick={() => setShowPassword(!showPassword)}>
+                          {showPassword ? "Hide" : "Show"}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  <Button variant="outline" className="w-full text-purple-600 border-purple-200 hover:bg-purple-50" onClick={() => setIsResetting(true)}>
+                    Reset Password
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
+                  <Label htmlFor="new-password">New Password <span className="text-destructive">*</span></Label>
+                  <Input id="new-password" type="password" value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
+                    placeholder="Enter a secure password (min 6 chars)" autoFocus />
+                  <p className="text-xs text-muted-foreground px-1">
+                    The student will be forced to change this password on their next login.
+                  </p>
+                  <div className="flex gap-2 pt-2">
+                    <Button variant="outline" className="flex-1" onClick={() => { setIsResetting(false); setNewPassword(""); }}>
+                      Cancel Reset
+                    </Button>
+                    <Button onClick={handleSetPassword} disabled={passwordSaving} className="flex-1 bg-purple-600 hover:bg-purple-700">
+                      {passwordSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                      Save New Password
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          {!isResetting && (
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setPasswordModalOpen(false)}>Close</Button>
+            </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
     </div>

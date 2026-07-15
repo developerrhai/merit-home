@@ -10,8 +10,9 @@ const items = [
   { title: "Dashboard", url: "/teacherdashboard", icon: Home },
   { title: "Teacher (Wizard)", url: "/teacherdashboard/notes", icon: GraduationCap },
   { title: "Notes (Dropdown)", url: "/teacherdashboard/notes-dropdown", icon: GraduationCap },
-  // { title: "Subjects", url: "/teacherdashboard/subjects", icon: BookOpen },
   { title: "Student Management", url: "/teacherdashboard/subjects", icon: BookOpen },
+  { title: "Homework", url: "/teacherdashboard/homework", icon: BookOpen },
+  { title: "Teaching Logs", url: "/teacherdashboard/teaching-logs", icon: BookOpen },
   { title: "Settings", url: "/teacherdashboard/settings", icon: Settings },
 ];
 

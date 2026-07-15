@@ -85,7 +85,8 @@ sudo pm2 restart institute-backend
 
 ### 2. How to check live server logs:
 ```bash
-sudo pm2 logs institute-backend
+# To check active logs of backend server under ec2-user:
+pm2 logs institutemanagement
 ```
 
 ### 3. How to backup the database (Local file creation):
@@ -98,4 +99,43 @@ sudo mysqldump -u root vidyapeeth > /home/ec2-user/backup_$(date +%F).sql
 ```bash
 # Log in to server and run:
 sudo mariadb vidyapeeth < /home/ec2-user/merit.sql
+```
+
+---
+
+## 📋 Biometric Integration & EC2 Server Synced Paths
+
+### 💻 Local Deployment Directories
+* **Monorepo (Frontend + Backend):** `C:\Users\admin\Desktop\freelance\merit-home`
+* **EC2 Deployment Workspace:** `C:\Users\admin\Desktop\freelance_backend\institutemanagement`
+
+### 🖥️ EC2 Deployment Workspace Paths & Commands
+* **App Root Path on EC2:** `/app/institutemanagement`
+* **Sync & Deploy workflow from Local:**
+  ```bash
+  # Step 1: Copy modified files to EC2 workspace excluding environment variables and node_modules
+  robocopy c:\Users\admin\Desktop\freelance\merit-home\backend C:\Users\admin\Desktop\freelance_backend\institutemanagement /MIR /XD node_modules .git /XF .env node-key.pem
+
+  # Step 2: Push changes to fork remote branch
+  cd C:\Users\admin\Desktop\freelance_backend\institutemanagement
+  git add .
+  git commit -m "feat: deploy biometric updates"
+  git push fork feature/otp-password-reset
+
+  # Step 3: Pull changes and restart backend on EC2 server
+  ssh -i C:\Users\admin\Desktop\freelance_backend\node-key.pem ec2-user@13.204.199.132 "cd /app/institutemanagement && git pull fork feature/otp-password-reset && npm install && pm2 restart 0"
+  ```
+
+### 🔑 Environment Variables (.env)
+Add these variables to `backend/.env` (and server `/app/institutemanagement/.env`) to connect the biometric sync:
+```bash
+# Biometric API (Placeholder defaults, replace with real values)
+SMARTOFFICE_BASE_URL=http://your-smartoffice-ip-or-domain
+SMARTOFFICE_API_KEY=your_smartoffice_api_key_here
+SMARTOFFICE_SERIAL_NUMBER=your_device_serial_number_here
+
+# WhatsApp configurations
+WHATSAPP_APP_KEY=your_whatsapp_app_key_here
+WHATSAPP_AUTH_KEY=your_whatsapp_auth_key_here
+WHATSAPP_TEMPLATE_ID=your_whatsapp_template_id_here
 ```

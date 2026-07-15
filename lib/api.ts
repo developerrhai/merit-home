@@ -20,7 +20,7 @@ export const setToken = (t: string) => localStorage.setItem("token", t);
 export const clearToken = () => localStorage.removeItem("token");
 
 /* ── low-level fetch wrapper ────────────────────────────── */
-async function request<T = unknown>(
+async function request<T = any>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
@@ -44,6 +44,8 @@ const post = (path: string, body: unknown) =>
   request(path, { method: "POST", body: JSON.stringify(body) });
 const put  = (path: string, body: unknown) =>
   request(path, { method: "PUT",  body: JSON.stringify(body) });
+const patch = (path: string, body: unknown) =>
+  request(path, { method: "PATCH", body: JSON.stringify(body) });
 const del  = (path: string) => request(path, { method: "DELETE" });
 
 /* ── query-string builder ───────────────────────────────── */
@@ -95,6 +97,9 @@ export const studentsApi = {
     put(`/students/${id}`, data),
 
   remove: (id: string | number) => del(`/students/${id}`),
+
+  getPassword: (id: string | number) => get(`/students/${id}/password`),
+  resetPassword: (id: string | number, data: Record<string, unknown>) => put(`/students/${id}/password`, data),
 };
 
 export const studentsUniversalApi = {
@@ -256,8 +261,39 @@ export const studentAttendanceApi = {
 };
 
 export const studentRankHistoryApi = {
-  getByStudent: (studentId: string | number) => get(`/student-rank-history/${studentId}`),
-  snapshotAll: () => post("/student-rank-history/snapshot", {}),
+  getByStudent: async (studentId: string | number) => {
+    console.warn("Using mock studentRankHistoryApi.getByStudent");
+    return {
+      success: true,
+      data: [
+        { date: "2026-01-01", rank: 5, score: 85 },
+        { date: "2026-02-01", rank: 4, score: 88 },
+        { date: "2026-03-01", rank: 3, score: 92 },
+      ]
+    };
+  },
+  snapshotAll: async () => {
+    console.warn("Using mock studentRankHistoryApi.snapshotAll");
+    return { success: true, message: "Mock snapshot successful" };
+  },
+};
+
+export const homeworkApi = {
+  create: (data: Record<string, unknown>) => post("/homework", data),
+  edit: (id: string | number, data: Record<string, unknown>) => patch(`/homework/${id}`, data),
+  getByBatch: (batch: string) => get(`/homework/batch/${encodeURIComponent(batch)}`),
+  getTeacherHomework: () => get("/homework/teacher"),
+  bulkUpdateStatus: (id: string | number, statuses: Array<{studentId: number; status: string; feedback?: string}>) =>
+    put(`/homework/${id}/status`, { statuses }),
+  getHomeworkStudents: (id: string | number) => get(`/homework/${id}/students`),
+  remove: (id: string | number) => del(`/homework/${id}`),
+};
+
+export const teachingLogsApi = {
+  create: (data: Record<string, unknown>) => post("/teaching-logs", data),
+  getByBatch: (batch: string) => get(`/teaching-logs/batch/${encodeURIComponent(batch)}`),
+  getTeacherLogs: () => get("/teaching-logs/teacher"),
+  getOverview: () => get("/teaching-logs/overview"),
 };
 
 

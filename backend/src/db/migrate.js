@@ -1,0 +1,397 @@
+/**
+ * migrate.js
+ * Run once:  node src/db/migrate.js
+ * Creates the database (if missing) and all tables.
+ */
+
+require("dotenv").config({ path: require("path").resolve(__dirname, "../../.env") });
+const mysql = require("mysql2/promise");
+
+const {
+  DB_HOST = "localhost",
+  DB_PORT = "3306",
+  DB_USER = "root",
+  DB_PASSWORD = "",
+  DB_NAME = "institutems",
+} = process.env;
+
+const DDL = `
+-- ─────────────────────────────────────────────────────────
+-- 1. admins  (login accounts for institute owners / staff)
+-- ─────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS admins (
+  id                INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  name              VARCHAR(100)  NOT NULL,
+  email             VARCHAR(150)  NOT NULL UNIQUE,
+  password          VARCHAR(255)  NOT NULL,
+  institute         VARCHAR(200)  NOT NULL DEFAULT '',
+  address           TEXT,
+  reset_otp         VARCHAR(6)    DEFAULT NULL,
+  reset_otp_expires DATETIME      DEFAULT NULL,
+  last_otp_sent     DATETIME      DEFAULT NULL,
+  created_at        DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at        DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- ─────────────────────────────────────────────────────────
+-- 2. students
+-- ─────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS students (
+  id           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  admin_id     INT UNSIGNED NOT NULL,
+  name         VARCHAR(100) NOT NULL,
+  email        VARCHAR(150) DEFAULT NULL,
+  phone        VARCHAR(20)  DEFAULT '',
+  father_name  VARCHAR(100) DEFAULT '',
+  father_phone VARCHAR(20)  DEFAULT '',
+  board        ENUM('CBSE','ICSE','State','') DEFAULT '',
+  standard     VARCHAR(10)  DEFAULT '',
+  course       VARCHAR(100) DEFAULT '',
+  location     VARCHAR(100) DEFAULT '',
+  institute    VARCHAR(200) DEFAULT '',
+  fee          DECIMAL(10,2) DEFAULT 0.00,
+  paid_fee     DECIMAL(10,2) DEFAULT 0.00,
+  password     VARCHAR(255) DEFAULT NULL,
+  deleted_at   DATETIME     DEFAULT NULL,
+  created_at   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ─────────────────────────────────────────────────────────
+-- 3. teachers
+-- ─────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS teachers (
+  id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  admin_id   INT UNSIGNED NOT NULL,
+  name       VARCHAR(100) NOT NULL,
+  email      VARCHAR(150) DEFAULT NULL,
+  phone      VARCHAR(20)  DEFAULT '',
+  institute  VARCHAR(200) DEFAULT '',
+  location   VARCHAR(100) DEFAULT '',
+  subjects   JSON         DEFAULT NULL,   -- e.g. ["Math","Physics"]
+  created_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ─────────────────────────────────────────────────────────
+-- 4. inquiries
+-- ─────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS inquiries (
+  id           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  admin_id     INT UNSIGNED NOT NULL,
+  name         VARCHAR(100) NOT NULL,
+  phone        VARCHAR(20)  NOT NULL,
+  father_name  VARCHAR(100) DEFAULT '',
+  father_phone VARCHAR(20)  DEFAULT '',
+  course       VARCHAR(100) DEFAULT '',
+  location     VARCHAR(100) DEFAULT '',
+  board        VARCHAR(20)  DEFAULT '',
+  standard     VARCHAR(10)  DEFAULT '',
+  status       ENUM('New','Contacted','Follow Up','Admission Done','Not Interested') NOT NULL DEFAULT 'New',
+  video        VARCHAR(500) DEFAULT '',
+  inquiry_date DATE         NOT NULL DEFAULT (CURRENT_DATE),
+  created_at   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ─────────────────────────────────────────────────────────
+-- 5. appointments
+-- ─────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS appointments (
+  id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  admin_id         INT UNSIGNED NOT NULL,
+  name             VARCHAR(100) NOT NULL,
+  standard         VARCHAR(10)  DEFAULT '',
+  board            VARCHAR(20)  DEFAULT '',
+  course           VARCHAR(100) DEFAULT '',
+  appointment_date DATE         NOT NULL,
+  appointment_time TIME         NOT NULL,
+  location         VARCHAR(100) DEFAULT '',
+  whatsapp         VARCHAR(25)  DEFAULT '',
+  status           ENUM('Pending','Confirmed','Done','Cancelled') NOT NULL DEFAULT 'Pending',
+  created_at       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ─────────────────────────────────────────────────────────
+-- 6. invoices
+-- ─────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS invoices (
+  id           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  admin_id     INT UNSIGNED NOT NULL,
+  student_id   INT UNSIGNED DEFAULT NULL,
+  student_name VARCHAR(100) NOT NULL,
+  amount       DECIMAL(10,2) NOT NULL,
+  paid_amount  DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  due_date     DATE          DEFAULT NULL,
+  status       ENUM('Paid','Partial','Pending','Overdue') NOT NULL DEFAULT 'Pending',
+  description  VARCHAR(500)  DEFAULT '',
+  created_at   DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at   DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (admin_id)   REFERENCES admins(id)   ON DELETE CASCADE,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ─────────────────────────────────────────────────────────
+-- 7. finance_records  (payroll + expenses)
+-- ─────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS finance_records (
+  id           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  admin_id     INT UNSIGNED NOT NULL,
+  type         ENUM('Payroll','Expense') NOT NULL,
+  name         VARCHAR(200) NOT NULL,
+  amount       DECIMAL(10,2) NOT NULL,
+  record_date  DATE          NOT NULL,
+  category     VARCHAR(100)  DEFAULT '',
+  created_at   DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+`;
+
+async function ensureOtpColumns(conn) {
+  // Create branches table if missing
+  try {
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS branches (
+        branch_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        branch_name VARCHAR(100) NOT NULL UNIQUE,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB;
+    `);
+    console.log("✅ branches table verified/created.");
+  } catch (err) {
+    console.warn("⚠️ Could not create branches table:", err.message);
+  }
+
+  // Create batches table if missing
+  try {
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS batches (
+        batch_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        branch_id INT UNSIGNED NOT NULL,
+        batch_name VARCHAR(100) NOT NULL,
+        start_time TIME NOT NULL,
+        end_time TIME NOT NULL,
+        batch_start_date DATE NOT NULL,
+        batch_end_date DATE NOT NULL,
+        late_grace_minutes INT DEFAULT 10,
+        scheduled_days VARCHAR(100) DEFAULT 'Mon,Tue,Wed,Thu,Fri',
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (branch_id) REFERENCES branches(branch_id) ON DELETE CASCADE
+      ) ENGINE=InnoDB;
+    `);
+    console.log("✅ batches table verified/created.");
+  } catch (err) {
+    console.warn("⚠️ Could not create batches table:", err.message);
+  }
+
+  try {
+    await conn.query(`
+      ALTER TABLE admins 
+      ADD COLUMN reset_otp VARCHAR(6) DEFAULT NULL,
+      ADD COLUMN reset_otp_expires DATETIME DEFAULT NULL,
+      ADD COLUMN last_otp_sent DATETIME DEFAULT NULL
+    `);
+    console.log("✅ Ensured OTP & rate limiting columns exist in admins table");
+  } catch (err) {
+    if (err.code === "ER_DUP_FIELDNAME" || err.message.includes("Duplicate column name")) {
+      console.log("✅ OTP & rate limiting columns already exist in admins table");
+    } else {
+      console.warn("⚠️ Could not run ALTER TABLE on admins:", err.message);
+    }
+  }
+
+  try {
+    await conn.query(`
+      ALTER TABLE teachers 
+      ADD COLUMN reset_otp VARCHAR(6) DEFAULT NULL,
+      ADD COLUMN reset_otp_expires DATETIME DEFAULT NULL,
+      ADD COLUMN last_otp_sent DATETIME DEFAULT NULL
+    `);
+    console.log("✅ Ensured OTP & rate limiting columns exist in teachers table");
+  } catch (err) {
+    if (err.code === "ER_DUP_FIELDNAME" || err.message.includes("Duplicate column name")) {
+      console.log("✅ OTP & rate limiting columns already exist in teachers table");
+    } else {
+      console.warn("⚠️ Could not run ALTER TABLE on teachers:", err.message);
+    }
+  }
+
+  // Phase 1 Additions for Students
+  try {
+    await conn.query(`
+      ALTER TABLE students 
+      ADD COLUMN password VARCHAR(255) DEFAULT NULL,
+      ADD COLUMN deleted_at DATETIME DEFAULT NULL
+    `);
+    console.log("✅ Ensured password & deleted_at columns exist in students table");
+  } catch (err) {
+    if (err.code === "ER_DUP_FIELDNAME" || err.message.includes("Duplicate column name")) {
+      console.log("✅ password & deleted_at columns already exist in students table");
+    } else {
+      console.warn("⚠️ Could not run ALTER TABLE on students:", err.message);
+    }
+  }
+
+  // Phase 2 Additions for Students
+  try {
+    await conn.query(`
+      ALTER TABLE students 
+      ADD COLUMN encrypted_password VARCHAR(255) DEFAULT NULL,
+      ADD COLUMN is_first_login BOOLEAN DEFAULT TRUE
+    `);
+    console.log("✅ Ensured encrypted_password & is_first_login columns exist in students table");
+  } catch (err) {
+    if (err.code === "ER_DUP_FIELDNAME" || err.message.includes("Duplicate column name")) {
+      console.log("✅ encrypted_password or is_first_login already exists in students table");
+    } else {
+      console.warn("⚠️ Could not run ALTER TABLE on students for new auth columns:", err.message);
+    }
+  }
+
+  // Phase 3 Attendance Additions
+  try {
+    await conn.query(`
+      ALTER TABLE students 
+      ADD COLUMN biometric_code VARCHAR(50) UNIQUE DEFAULT NULL
+    `);
+    console.log("✅ Ensured biometric_code column exists in students table");
+  } catch (err) {
+    if (err.code === "ER_DUP_FIELDNAME" || err.message.includes("Duplicate column name")) {
+      console.log("✅ biometric_code already exists in students table");
+    } else {
+      console.warn("⚠️ Could not run ALTER TABLE on students for biometric_code:", err.message);
+    }
+  }
+
+  try {
+    await conn.query(`
+      ALTER TABLE teachers 
+      ADD COLUMN biometric_code VARCHAR(50) UNIQUE DEFAULT NULL
+    `);
+    console.log("✅ Ensured biometric_code column exists in teachers table");
+  } catch (err) {
+    if (err.code === "ER_DUP_FIELDNAME" || err.message.includes("Duplicate column name")) {
+      console.log("✅ biometric_code already exists in teachers table");
+    } else {
+      console.warn("⚠️ Could not run ALTER TABLE on teachers for biometric_code:", err.message);
+    }
+  }
+
+  // Ensure batches table has late_grace_minutes and scheduled_days columns
+  try {
+    await conn.query(`
+      ALTER TABLE batches 
+      ADD COLUMN late_grace_minutes INT DEFAULT 10,
+      ADD COLUMN scheduled_days VARCHAR(100) DEFAULT 'Mon,Tue,Wed,Thu,Fri'
+    `);
+    console.log("✅ Ensured late_grace_minutes & scheduled_days exist in batches table");
+  } catch (err) {
+    if (err.code === "ER_DUP_FIELDNAME" || err.message.includes("Duplicate column name")) {
+      console.log("✅ late_grace_minutes or scheduled_days already exists in batches table");
+    } else {
+      console.warn("⚠️ Could not run ALTER TABLE on batches:", err.message);
+    }
+  }
+
+  // Create student_batches table
+  try {
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS student_batches (
+        student_id INT UNSIGNED NOT NULL,
+        batch_id INT UNSIGNED NOT NULL,
+        PRIMARY KEY (student_id, batch_id),
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+        FOREIGN KEY (batch_id) REFERENCES batches(batch_id) ON DELETE CASCADE
+      ) ENGINE=InnoDB;
+    `);
+    console.log("✅ student_batches table verified/created.");
+  } catch (err) {
+    console.warn("⚠️ Could not create student_batches table:", err.message);
+  }
+
+  // Create teacher_batch_mappings table
+  try {
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS teacher_batch_mappings (
+        teacher_id INT UNSIGNED NOT NULL,
+        batch_id INT UNSIGNED NOT NULL,
+        PRIMARY KEY (teacher_id, batch_id),
+        FOREIGN KEY (teacher_id) REFERENCES teachers(id) ON DELETE CASCADE,
+        FOREIGN KEY (batch_id) REFERENCES batches(batch_id) ON DELETE CASCADE
+      ) ENGINE=InnoDB;
+    `);
+    console.log("✅ teacher_batch_mappings table verified/created.");
+  } catch (err) {
+    console.warn("⚠️ Could not create teacher_batch_mappings table:", err.message);
+  }
+
+  // Create attendance table
+  try {
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS attendance (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        user_id INT UNSIGNED NOT NULL,
+        role ENUM('STUDENT', 'TEACHER') NOT NULL,
+        date DATE NOT NULL,
+        punch_in_time TIME DEFAULT NULL,
+        punch_out_time TIME DEFAULT NULL,
+        status ENUM('Present', 'Absent', 'Late', 'Half-Day', 'On Leave') NOT NULL DEFAULT 'Absent',
+        source ENUM('Manual', 'Smart Office') NOT NULL DEFAULT 'Manual',
+        smart_office_reference_id VARCHAR(100) DEFAULT NULL,
+        batch_id INT UNSIGNED DEFAULT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_user_date_role_batch (user_id, date, role, batch_id),
+        FOREIGN KEY (batch_id) REFERENCES batches(batch_id) ON DELETE SET NULL
+      ) ENGINE=InnoDB;
+    `);
+    console.log("✅ attendance table verified/created.");
+  } catch (err) {
+    console.warn("⚠️ Could not create attendance table:", err.message);
+  }
+}
+
+async function migrate() {
+  // Connect WITHOUT specifying a database so we can CREATE it
+  const conn = await mysql.createConnection({
+    host: DB_HOST, port: parseInt(DB_PORT),
+    user: DB_USER, password: DB_PASSWORD,
+    multipleStatements: true,
+  });
+
+  console.log("📦 Connected to MySQL as root");
+
+  await conn.query(`CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
+  console.log(`✅ Database '${DB_NAME}' ready`);
+
+  await conn.query(`USE \`${DB_NAME}\``);
+
+  // Run all CREATE TABLE statements
+  await conn.query(DDL);
+  console.log("✅ All tables created (or already existed)");
+
+  // Run ALTER TABLE to add missing columns in existing databases
+  await ensureOtpColumns(conn);
+
+  await conn.end();
+  console.log("\n🎉 Migration complete!\n");
+}
+
+if (require.main === module) {
+  migrate().catch((err) => {
+    console.error("❌ Migration failed:", err.message);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  ensureOtpColumns,
+};
