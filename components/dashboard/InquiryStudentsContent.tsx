@@ -77,7 +77,7 @@ interface InquiryExtraRow {
 const EMPTY_FORM = {
   name: "", phone: "", father_name: "", father_phone: "", dob: "", sex: "",
   email: "", address: "", branch: "",  subjects: [] as string[],
-  standard: "", course: "", last_exam_marks: "", college_name: "", college_timing: "",
+  standard: "", course: "", board: "", last_exam_marks: "", college_name: "", college_timing: "",
   future_plans: "", father_occupation: "", mother_occupation: "", sibling_name: "",
   reference: "", taking_coaching: "", hostel_required: "",
   status: "Pending", feedback1: "", feedback2: "", notes: "",
@@ -143,7 +143,8 @@ function inquiryToForm(inq: Inquiry) {
     branch:            inq.branch,
     subjects:          inq.subjects || [],
     standard:          inq.standard,
-    course:            inq.batch,
+    course:            "",
+    board:             inq.batch,
     last_exam_marks:   inq.lastExamMarks,
     college_name:      inq.collegeName,
     college_timing:    inq.collegeTiming,
@@ -198,7 +199,7 @@ export function InquiryStudentsContent() {
           dob:              row.dob || "",
           studentContact:   row.phone || "",
           parentContact:    row.father_phone || "",
-          batch:            row.course || "",
+          batch:            row.board || row.course || "",
           standard:         row.standard || "",
           lastExamMarks:    row.last_exam_marks || "",
           collegeName:      row.college_name || "",
@@ -433,7 +434,7 @@ export function InquiryStudentsContent() {
           <div className="flex gap-2 flex-wrap">
             {[
               { val: filterSex,    set: setFilterSex,    opts: ["Male","Female","Other"],            placeholder: "All Genders"  },
-              { val: filterBatch,  set: setFilterBatch,  opts: ["Online","Offline"],                 placeholder: "All Batches"  },
+              { val: filterBatch,  set: setFilterBatch,  opts: ["State Board","CBSE","ICSE","IB"],   placeholder: "All Boards"  },
               { val: filterStatus, set: setFilterStatus, opts: ["Confirmed","Pending","Maybe"],      placeholder: "All Statuses" },
             ].map(({ val, set, opts, placeholder }) => (
               <select key={placeholder} value={val} onChange={e => set(e.target.value)}
@@ -501,7 +502,7 @@ export function InquiryStudentsContent() {
                 <div className="px-4 py-3 grid grid-cols-2 gap-x-4 gap-y-2">
                   <MobileField label="Phone"    value={inq.studentContact} />
                   <MobileField label="Standard" value={inq.standard} />
-                  <MobileField label="Batch"    value={inq.batch} />
+                  <MobileField label="Board"    value={inq.batch} />
                   <MobileField label="Branch"   value={inq.branch} />
                   <MobileField label="Reference" value={inq.reference} />
                   <MobileField label="Date"     value={
@@ -557,7 +558,7 @@ export function InquiryStudentsContent() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gray-900">
-                    {["Sr no.","Student","Contact","Standard","Batch","Branch & Address",
+                    {["Sr no.","Student","Contact","Standard","Board","Branch & Address",
                       "Reference","Status","Feedback 1","Feedback 2","Notes","Inquiry Date","Actions"
                     ].map(h => (
                       <th key={h} className="text-left px-4 py-3 text-white font-semibold text-xs whitespace-nowrap">{h}</th>
@@ -598,10 +599,10 @@ export function InquiryStudentsContent() {
                         </span>
                       </td>
 
-                      {/* Batch */}
+                      {/* Board */}
                       <td className="px-4 py-3">
                         <span className={`px-2 py-1 rounded-md border text-xs font-semibold whitespace-nowrap ${
-                          inq.batch === "Online" ? "bg-green-50 border-green-200 text-green-700" : "bg-gray-50 border-gray-200 text-gray-600"
+                          inq.batch === "CBSE" ? "bg-green-50 border-green-200 text-green-700" : "bg-gray-50 border-gray-200 text-gray-600"
                         }`}>
                           {inq.batch || "—"}
                         </span>
@@ -793,10 +794,9 @@ export function InquiryStudentsContent() {
                   <FormField label="Branch">
                     <select name="branch" value={formData.branch} onChange={handleFormChange} className={inputCls}>
                       <option value="">Select Branch</option>
-                      <option value="Main Branch">Main Branch</option>
-                      <option value="Branch A">Branch A</option>
-                      <option value="Branch B">Branch B</option>
-                      <option value="Online">Online</option>
+                      {["Thergaon", "Wakad", "Chinchwad"].map(b => (
+                        <option key={b} value={b}>{b}</option>
+                      ))}
                     </select>
                   </FormField>
                   <FormField label="Address" className="sm:col-span-2">
@@ -812,14 +812,20 @@ export function InquiryStudentsContent() {
                   <FormField label="Standard *">
                     <select name="standard" value={formData.standard} onChange={handleFormChange} className={inputCls}>
                       <option value="">Select</option>
-                      {["8th","9th","10th","11th","12th","Dropper","Other"].map(s => <option key={s} value={s}>{s}</option>)}
+                      {[
+                        "1st Standard", "2nd Standard", "3rd Standard", "4th Standard", "5th Standard",
+                        "6th Standard", "7th Standard", "8th Standard", "9th Standard", "10th Standard",
+                        "11th Standard", "12th Standard", "Dropper"
+                      ].map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </FormField>
-                  <FormField label="Batch">
-                    <select name="course" value={formData.course} onChange={handleFormChange} className={inputCls}>
+                  <FormField label="Board">
+                    <select name="board" value={formData.board} onChange={handleFormChange} className={inputCls}>
                       <option value="">Select</option>
-                      <option value="Online">Online</option>
-                      <option value="Offline">Offline</option>
+                      <option value="State Board">State Board</option>
+                      <option value="CBSE">CBSE</option>
+                      <option value="ICSE">ICSE</option>
+                      <option value="IB">IB</option>
                     </select>
                   </FormField>
                   <FormField label="Last Exam Marks">

@@ -258,6 +258,7 @@ export const studentAttendanceApi = {
   getByStudent: (studentId: string | number) => get(`/student-attendance/${studentId}`),
   createByStudent: (studentId: string | number, data: Record<string, unknown>) =>
     post(`/student-attendance/${studentId}`, data),
+  getMyAttendance: () => get("/attendance/my-attendance"),
 };
 
 export const studentRankHistoryApi = {

@@ -185,9 +185,10 @@ export function RegisterUserContent() {
                   <Select value={formData.board} onValueChange={v => set("board", v)}>
                     <SelectTrigger><SelectValue placeholder="Select Board" /></SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="State">State Board</SelectItem>
                       <SelectItem value="CBSE">CBSE</SelectItem>
                       <SelectItem value="ICSE">ICSE</SelectItem>
-                      <SelectItem value="State">State Board</SelectItem>
+                      <SelectItem value="IB">IB</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

@@ -11,6 +11,7 @@ import {
   Sparkles,
   GraduationCap,
   Shield,
+  Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { clearToken } from "@/lib/api";
@@ -19,6 +20,8 @@ import { useAuthStore } from "@/lib/store";
 const navItems = [
   { title: "Dashboard", url: "/student/dashboard", icon: Home },
   { title: "My Homework", url: "/student/homework", icon: BookOpen },
+  { title: "My Marks", url: "/student/marks", icon: GraduationCap },
+  { title: "My Attendance", url: "/student/attendance", icon: Calendar },
   { title: "Fee Status", url: "/student/fees", icon: Receipt },
   { title: "Class Logs", url: "/student/class-logs", icon: BookMarked },
   { title: "Security", url: "/student/change-password", icon: Shield },

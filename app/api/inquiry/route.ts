@@ -23,30 +23,28 @@ export async function POST(request: NextRequest) {
     const inquiryPayload = {
       name: studentName,
       phone: studentContact,
-      father_name: "", // optional
+      father_name: body.fatherName || "",
       father_phone: parentContact,
-      course: body.batch || "",
-      location: body.location || "", // optional
-      board: "",
+      course: "",
+      location: body.location || "",
+      board: body.batch || "", // Board is captured under batch in the form state
       standard: body.standard || "",
       status: "New",
       video: "",
-      extra: {
-        dob: body.dob || "",
-        email: body.email || "",
-        address: body.address || "",
-        collegeName: body.collegeName || "",
-        collegeTiming: body.collegeTiming || "",
-        lastExamMarks: body.lastExamMarks || "",
-        fatherOccupation: body.fatherOccupation || "",
-        motherOccupation: body.motherOccupation || "",
-        futurePlans: body.futurePlans || "",
-        reference: body.reference || "",
-        siblingName: body.siblingName || "",
-        sex: body.sex || "",
-        takingCoaching: body.takingCoaching || "",
-        hostelRequired: body.hostelRequired || "",
-      },
+      dob: body.dob || "",
+      email: body.email || "",
+      address: body.address || "",
+      college_name: body.collegeName || "",
+      college_timing: body.collegeTiming || "",
+      last_exam_marks: body.lastExamMarks || "",
+      father_occupation: body.fatherOccupation || "",
+      mother_occupation: body.motherOccupation || "",
+      future_plans: body.futurePlans || "",
+      reference: body.reference || "",
+      sibling_name: body.siblingName || "",
+      sex: body.sex || "",
+      taking_coaching: body.takingCoaching || "",
+      hostel_required: body.hostelRequired || "",
     };
 
     // ✅ Correct backend call

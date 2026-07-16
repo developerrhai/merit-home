@@ -6,30 +6,32 @@ import { Header } from "@/components/ui/header"
 
 const STEPS = ["Basic Details", "Academic", "Family & Contact", "Other Info"]
 
-const BATCHES = [
-  "Offline",
-  "Online",
+const BOARDS = [
+  "State Board",
+  "CBSE",
+  "ICSE",
+  "IB",
 ]
 
 const BRANCHES = [
-  "CHINCHWAD",
-  "THERGAON",
-  "WAKAD",
+  "Thergaon",
+  "Wakad",
+  "Chinchwad",
 ]
 
 const STANDARDS = [
-  "1st",
-  "2nd",
-  "3rd",
-  "4th",
-  "5th",
-  "6th",
-  "7th",
-  "8th",
-  "9th",
-  "10th",
-  "11th",
-  "12th",
+  "1st Standard",
+  "2nd Standard",
+  "3rd Standard",
+  "4th Standard",
+  "5th Standard",
+  "6th Standard",
+  "7th Standard",
+  "8th Standard",
+  "9th Standard",
+  "10th Standard",
+  "11th Standard",
+  "12th Standard",
   "Dropper",
 ]
 
@@ -112,7 +114,7 @@ export default function InquiryFormPage() {
       if (!form.parentContact.trim()) return "Parent contact is required"
     }
     if (step === 1) {
-      if (!form.batch) return "Please select a batch"
+      if (!form.batch) return "Please select a board"
       if (!form.standard) return "Please select a standard"
       if (!form.location) return "Please select a branch"
     }
@@ -307,10 +309,10 @@ export default function InquiryFormPage() {
               {/* STEP 1 — Academic */}
               {step === 1 && (
                 <>
-                  <Field label="Select Batch" required>
+                  <Field label="Select Board" required>
                     <select value={form.batch} onChange={e => set("batch", e.target.value)} className={selectCls}>
-                      <option value="">-- Select Batch --</option>
-                      {BATCHES.map(b => <option key={b} value={b}>{b}</option>)}
+                      <option value="">-- Select Board --</option>
+                      {BOARDS.map(b => <option key={b} value={b}>{b}</option>)}
                     </select>
                   </Field>
                   <Field label="Select Standard" required>

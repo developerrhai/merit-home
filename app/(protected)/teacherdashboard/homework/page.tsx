@@ -19,6 +19,13 @@ const BATCHES = [
   "6th Standard CBSE", "7th Standard CBSE", "8th Standard CBSE", "9th Standard CBSE", "10th Standard CBSE",
   "11th Standard CBSE", "12th Standard CBSE", "10th Standard State", "12th Standard State"
 ];
+const BRANCHES = ["Thergaon", "Wakad", "Chinchwad"];
+const BOARDS = ["State Board", "CBSE", "ICSE", "IB"];
+const STANDARDS = [
+  "1st Standard", "2nd Standard", "3rd Standard", "4th Standard", "5th Standard",
+  "6th Standard", "7th Standard", "8th Standard", "9th Standard", "10th Standard",
+  "11th Standard", "12th Standard"
+];
 
 export default function HomeworkPage() {
   const [homeworks, setHomeworks] = useState<any[]>([]);
@@ -27,7 +34,7 @@ export default function HomeworkPage() {
   // Create Modal
   const [createOpen, setCreateOpen] = useState(false);
   const [newHw, setNewHw] = useState({
-    title: "", description: "", subject: "", batches: [] as string[], dueDate: "", attachmentUrl: ""
+    chapter: "", topic: "", subject: "", branch: "", board: "", standard: "", dueDate: "", description: "", attachmentUrl: ""
   });
   const [saving, setSaving] = useState(false);
 
@@ -62,7 +69,7 @@ export default function HomeworkPage() {
 
   // Handle Homework Assignment
   const handleAssign = async () => {
-    if (!newHw.title || !newHw.subject || newHw.batches.length === 0 || !newHw.dueDate) {
+    if (!newHw.chapter || !newHw.topic || !newHw.subject || !newHw.branch || !newHw.standard || !newHw.dueDate) {
       alert("Please fill in all required fields.");
       return;
     }
@@ -70,7 +77,7 @@ export default function HomeworkPage() {
     try {
       await homeworkApi.create(newHw);
       setCreateOpen(false);
-      setNewHw({ title: "", description: "", subject: "", batches: [], dueDate: "", attachmentUrl: "" });
+      setNewHw({ chapter: "", topic: "", subject: "", branch: "", board: "", standard: "", dueDate: "", description: "", attachmentUrl: "" });
       fetchHomeworks();
     } catch (err: any) {
       alert(err.message || "Failed to assign homework");
@@ -269,12 +276,34 @@ export default function HomeworkPage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>New Homework Assignment</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2 text-sm">
-            <div className="space-y-1.5">
-              <Label htmlFor="title">Title <span className="text-destructive">*</span></Label>
-              <Input id="title" value={newHw.title} onChange={e => setNewHw({...newHw, title: e.target.value})} placeholder="e.g. NCERT Exercise 4.2" />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="branch">Branch <span className="text-destructive">*</span></Label>
+                <select id="branch" value={newHw.branch} onChange={e => setNewHw({...newHw, branch: e.target.value})} 
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20">
+                  <option value="">Select Branch</option>
+                  {BRANCHES.map(b => <option key={b} value={b}>{b}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="board">Board <span className="text-destructive">*</span></Label>
+                <select id="board" value={newHw.board} onChange={e => setNewHw({...newHw, board: e.target.value})} 
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20">
+                  <option value="">Select Board</option>
+                  {BOARDS.map(b => <option key={b} value={b}>{b}</option>)}
+                </select>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="standard">Std (Standard) <span className="text-destructive">*</span></Label>
+                <select id="standard" value={newHw.standard} onChange={e => setNewHw({...newHw, standard: e.target.value})} 
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20">
+                  <option value="">Select Standard</option>
+                  {STANDARDS.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
               <div className="space-y-1.5">
                 <Label htmlFor="subject">Subject <span className="text-destructive">*</span></Label>
                 <select id="subject" value={newHw.subject} onChange={e => setNewHw({...newHw, subject: e.target.value})} 
@@ -283,31 +312,22 @@ export default function HomeworkPage() {
                   {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="dueDate">Due Date <span className="text-destructive">*</span></Label>
-                <Input id="dueDate" type="date" value={newHw.dueDate} onChange={e => setNewHw({...newHw, dueDate: e.target.value})} />
+                <Label htmlFor="chapter">Chapter Name <span className="text-destructive">*</span></Label>
+                <Input id="chapter" value={newHw.chapter} onChange={e => setNewHw({...newHw, chapter: e.target.value})} placeholder="e.g. Chapter 4 Integration" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="topic">Topic Name <span className="text-destructive">*</span></Label>
+                <Input id="topic" value={newHw.topic} onChange={e => setNewHw({...newHw, topic: e.target.value})} placeholder="e.g. Integration by parts" />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <Label>Select Batches / Classes <span className="text-destructive">*</span></Label>
-              <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto border rounded-md p-2.5 bg-muted/20">
-                {BATCHES.map(b => (
-                  <label key={b} className="flex items-center gap-2 cursor-pointer text-xs">
-                    <input type="checkbox" checked={newHw.batches.includes(b)}
-                      onChange={e => {
-                        const checked = e.target.checked;
-                        setNewHw(prev => ({
-                          ...prev,
-                          batches: checked ? [...prev.batches, b] : prev.batches.filter(item => item !== b)
-                        }));
-                      }}
-                      className="rounded border-input text-primary focus:ring-primary"
-                    />
-                    <span>{b}</span>
-                  </label>
-                ))}
-              </div>
+              <Label htmlFor="dueDate">Due Date <span className="text-destructive">*</span></Label>
+              <Input id="dueDate" type="date" value={newHw.dueDate} onChange={e => setNewHw({...newHw, dueDate: e.target.value})} />
             </div>
 
             <div className="space-y-1.5">
