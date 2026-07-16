@@ -16,6 +16,7 @@ import { FinanceContent }                 from "@/components/dashboard/finance-c
 import { TeacherUpdatesContent }          from "@/components/dashboard/teacher-updates"
 import { StudentMarksContent }            from "@/components/dashboard/student-marks-content"
 import { AttendanceContent }              from "@/components/dashboard/attendance-content"
+import { AdminHomeworkContent }           from "@/components/dashboard/admin-homework"
 import { getToken }                       from "@/lib/api"
 import { cn } from "@/lib/utils"
 
@@ -66,6 +67,7 @@ export default function DashboardPage() {
       case "studentMarks":     return <StudentMarksContent />
       case "teacherManagement": return <TeachersContent />
       case "teacherUpdates":    return <TeacherUpdatesContent />
+      case "teacherHomework":   return <AdminHomeworkContent />
       case "invoices":          return <InvoicesContent />
       case "inquiry":           return <InquiryContent />
       case "appointments":      return <AppointmentsContent />

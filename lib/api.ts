@@ -283,6 +283,7 @@ export const homeworkApi = {
   edit: (id: string | number, data: Record<string, unknown>) => patch(`/homework/${id}`, data),
   getByBatch: (batch: string) => get(`/homework/batch/${encodeURIComponent(batch)}`),
   getTeacherHomework: () => get("/homework/teacher"),
+  getAllHomeworkAdmin: () => get("/homework/admin"),
   bulkUpdateStatus: (id: string | number, statuses: Array<{studentId: number; status: string; feedback?: string}>) =>
     put(`/homework/${id}/status`, { statuses }),
   getHomeworkStudents: (id: string | number) => get(`/homework/${id}/students`),

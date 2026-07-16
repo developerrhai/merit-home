@@ -20,6 +20,7 @@ export type SectionType =
   | "teachers"
   | "teacherManagement"
   | "teacherUpdates"
+  | "teacherHomework"
   | "invoices"
   | "inquiry"
   | "appointments"
@@ -122,6 +123,15 @@ export function Sidebar({
                       )}
                     >
                       Teacher Updates
+                    </button>
+                    <button
+                      onClick={() => { onSectionChange("teacherHomework"); setMobileOpen(false) }}
+                      className={cn(
+                        "block w-full text-left px-3 py-2 text-sm hover:text-amber-400",
+                        activeSection === "teacherHomework" ? "text-amber-400" : "text-slate-300"
+                      )}
+                    >
+                      Teacher Homework
                     </button>
                   </div>
                 )}
