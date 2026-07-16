@@ -139,3 +139,15 @@ WHATSAPP_APP_KEY=your_whatsapp_app_key_here
 WHATSAPP_AUTH_KEY=your_whatsapp_auth_key_here
 WHATSAPP_TEMPLATE_ID=your_whatsapp_template_id_here
 ```
+
+---
+
+## 📝 Update & Release Log
+
+### Release: Student Dashboard Extensions & UI Refactoring (July 16, 2026)
+* **Student Portal Marks View:** Added `My Marks` section allowing students to filter/search test marks and view automatic letter grade mappings (A+, A, B, etc.).
+* **Student Portal Attendance View:** Added `My Attendance` log with rate calculators showing present/absent days and logs sourced from manual/biometric entries.
+* **Backend Endpoint:** Added secure GET `/api/attendance/my-attendance` query handler restricted to authenticated students.
+* **Homework Assignment Enhancements:** Refactored teacher homework forms to replace the old checkbox lists with clean dropdown selectors for Branch, Board, Standard, and Subject, and added inputs for Chapter/Topic names.
+* **Unified Board Selection:** Standardized selection lists across the application (Register User form, Inquiries page, Homework assignment) to support 4 boards: **State Board**, **CBSE**, **ICSE**, and **IB**.
+* **Database Verification:** Deployed backend database migrations on the EC2 server, creating `homework`, `homework_status`, `teaching_logs`, and `teacher_batches` tables.
