@@ -397,46 +397,46 @@ export function StudentMarksContent() {
         <CardContent>
 
           {/* ── Filters ──────────────────────────────── */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 mb-6">
-            <div className="relative sm:col-span-2 xl:col-span-1">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3 mb-6 items-stretch sm:items-center">
+            <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search name, phone, ID…"
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="pl-10 rounded-xl"
+                className="pl-10 rounded-xl w-full"
               />
             </div>
             <Select value={filterStandard} onValueChange={setFilterStandard}>
-              <SelectTrigger className="rounded-xl"><SelectValue placeholder="All Standards" /></SelectTrigger>
+              <SelectTrigger className="rounded-xl w-full sm:w-[140px]"><SelectValue placeholder="All Standards" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Standards</SelectItem>
                 {standards.map(s => <SelectItem key={s} value={s}>Std {s}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={filterBoard} onValueChange={setFilterBoard}>
-              <SelectTrigger className="rounded-xl"><SelectValue placeholder="All Boards" /></SelectTrigger>
+              <SelectTrigger className="rounded-xl w-full sm:w-[130px]"><SelectValue placeholder="All Boards" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Boards</SelectItem>
                 {boards.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={filterLocation} onValueChange={setFilterLocation}>
-              <SelectTrigger className="rounded-xl"><SelectValue placeholder="All Locations" /></SelectTrigger>
+              <SelectTrigger className="rounded-xl w-full sm:w-[140px]"><SelectValue placeholder="All Locations" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Locations</SelectItem>
                 {locations.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={filterSubject} onValueChange={setFilterSubject}>
-              <SelectTrigger className="rounded-xl"><SelectValue placeholder="All Subjects" /></SelectTrigger>
+              <SelectTrigger className="rounded-xl w-full sm:w-[130px]"><SelectValue placeholder="All Subjects" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Subjects</SelectItem>
                 {subjects.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={filterExam} onValueChange={setFilterExam}>
-              <SelectTrigger className="rounded-xl"><SelectValue placeholder="All Examinations" /></SelectTrigger>
+              <SelectTrigger className="rounded-xl w-full sm:w-[160px]"><SelectValue placeholder="All Examinations" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Examinations</SelectItem>
                 {exams.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
