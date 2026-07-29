@@ -2,7 +2,7 @@
 
 import {
   Home, User, UserPlus, GraduationCap, Users,
-  Receipt, ClipboardList, Calendar, Wallet, LogOut, Menu, X, Award
+  Receipt, ClipboardList, Calendar, Wallet, LogOut, Menu, X, Award, MessageSquare, Bell
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
@@ -26,6 +26,8 @@ export type SectionType =
   | "appointments"
   | "finance"
   | "attendance"
+  | "chatGroups"
+  | "pushNotifications"
 
 interface SidebarProps {
   activeSection: SectionType
@@ -35,16 +37,18 @@ interface SidebarProps {
 }
 
 const menuItems: { id: SectionType; label: string; icon: React.ReactNode }[] = [
-  { id: "dashboard",    label: "Dashboard",    icon: <Home className="h-5 w-5" /> },
-  { id: "profile",      label: "Admin Profile", icon: <User className="h-5 w-5" /> },
-  { id: "registerUser", label: "Register User", icon: <UserPlus className="h-5 w-5" /> },
-  { id: "students",     label: "Students",      icon: <GraduationCap className="h-5 w-5" /> },
-  { id: "teachers",     label: "Teachers",      icon: <Users className="h-5 w-5" /> },
-  { id: "attendance",   label: "Attendance",    icon: <Award className="h-5 w-5" /> },
-  { id: "invoices",     label: "Invoices",      icon: <Receipt className="h-5 w-5" /> },
-  { id: "inquiry",      label: "New Inquiry",   icon: <ClipboardList className="h-5 w-5" /> },
-  { id: "appointments", label: "Appointments",  icon: <Calendar className="h-5 w-5" /> },
-  { id: "finance",      label: "Finance",       icon: <Wallet className="h-5 w-5" /> },
+  { id: "dashboard",         label: "Dashboard",          icon: <Home className="h-5 w-5" /> },
+  { id: "profile",           label: "Admin Profile",      icon: <User className="h-5 w-5" /> },
+  { id: "registerUser",      label: "Register User",      icon: <UserPlus className="h-5 w-5" /> },
+  { id: "pushNotifications", label: "Push Notifications", icon: <Bell className="h-5 w-5" /> },
+  { id: "students",          label: "Students",           icon: <GraduationCap className="h-5 w-5" /> },
+  { id: "teachers",          label: "Teachers",           icon: <Users className="h-5 w-5" /> },
+  { id: "attendance",        label: "Attendance",         icon: <Award className="h-5 w-5" /> },
+  { id: "invoices",          label: "Invoices",           icon: <Receipt className="h-5 w-5" /> },
+  { id: "inquiry",           label: "New Inquiry",        icon: <ClipboardList className="h-5 w-5" /> },
+  { id: "appointments",      label: "Appointments",       icon: <Calendar className="h-5 w-5" /> },
+  { id: "finance",           label: "Finance",            icon: <Wallet className="h-5 w-5" /> },
+  { id: "chatGroups",        label: "Group Chat",         icon: <MessageSquare className="h-5 w-5" /> },
 ]
 
 export function Sidebar({

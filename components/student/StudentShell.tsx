@@ -4,6 +4,7 @@ import { ReactNode, useEffect, useState } from "react";
 import { StudentSidebar } from "./StudentSidebar";
 import { Bell, Search, Menu, X } from "lucide-react";
 import { getToken } from "@/lib/api";
+import { registerPushNotificationToken } from "@/lib/push-notification";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/lib/store";
 
@@ -18,22 +19,26 @@ export function StudentShell({
   const user = useAuthStore((state) => state.user);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Derive user initial for the avatar from the store or localStorage fallback
-  const userInitial = (() => {
-    if (user?.name) return user.name.charAt(0).toUpperCase();
-    if (typeof window !== "undefined") {
+  const [userInitial, setUserInitial] = useState("S");
+
+  useEffect(() => {
+    if (user?.name) {
+      setUserInitial(user.name.charAt(0).toUpperCase());
+    } else if (typeof window !== "undefined") {
       try {
         const stored = localStorage.getItem("userInfo");
         if (stored) {
           const parsed = JSON.parse(stored);
-          return (parsed?.name as string)?.charAt(0)?.toUpperCase() ?? "S";
+          const name = parsed?.name;
+          if (name) {
+            setUserInitial(name.charAt(0).toUpperCase());
+          }
         }
       } catch {
-        /* ignore parse errors */
+        /* ignore */
       }
     }
-    return "S";
-  })();
+  }, [user]);
 
   useEffect(() => {
     // Guard: redirect to login if no token present
@@ -58,6 +63,9 @@ export function StudentShell({
     if (userRole !== "STUDENT") {
       router.replace("/");
     }
+
+    // Trigger Push Notification registration
+    registerPushNotificationToken().catch(console.error);
 
     // Guard: redirect to change-password if is_first_login is true
     if (storedUser) {

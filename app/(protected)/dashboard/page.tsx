@@ -17,7 +17,10 @@ import { TeacherUpdatesContent }          from "@/components/dashboard/teacher-u
 import { StudentMarksContent }            from "@/components/dashboard/student-marks-content"
 import { AttendanceContent }              from "@/components/dashboard/attendance-content"
 import { AdminHomeworkContent }           from "@/components/dashboard/admin-homework"
+import { ChatGroupsAdmin }                from "@/components/dashboard/chat-groups-admin"
+import { PushNotificationsContent }       from "@/components/dashboard/push-notifications-content"
 import { getToken }                       from "@/lib/api"
+import { registerPushNotificationToken }  from "@/lib/push-notification"
 import { cn } from "@/lib/utils"
 
 export default function DashboardPage() {
@@ -49,6 +52,7 @@ export default function DashboardPage() {
     }
 
     setAuthed(true)
+    registerPushNotificationToken().catch(console.error)
   }, [router])
 
   if (authed === null) return (
@@ -62,6 +66,7 @@ export default function DashboardPage() {
       case "dashboard":         return <DashboardContent />
       case "profile":           return <ProfileContent />
       case "registerUser":      return <RegisterUserContent />
+      case "pushNotifications": return <PushNotificationsContent />
       case "studentManagement": return <StudentsContent />
       case "inquiryStudents":   return <InquiryStudentsContent />
       case "studentMarks":     return <StudentMarksContent />
@@ -73,6 +78,7 @@ export default function DashboardPage() {
       case "appointments":      return <AppointmentsContent />
       case "finance":           return <FinanceContent />
       case "attendance":        return <AttendanceContent />
+      case "chatGroups":        return <ChatGroupsAdmin />
       default:                  return <DashboardContent />
     }
   }

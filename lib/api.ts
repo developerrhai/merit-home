@@ -298,4 +298,39 @@ export const teachingLogsApi = {
   getOverview: () => get("/teaching-logs/overview"),
 };
 
+/* ══════════════════════════════════════════════════════════
+   CHAT
+══════════════════════════════════════════════════════════ */
+export const chatGroupsApi = {
+  getAll: () => get("/chat-groups"),
+  getMyGroups: () => get("/chat-groups/my-groups"),
+  getOne: (id: string | number) => get(`/chat-groups/${id}`),
+  create: (data: Record<string, unknown>) => post("/chat-groups", data),
+  addMembers: (id: string | number, members: any[]) => post(`/chat-groups/${id}/members`, { members }),
+  removeMember: (groupId: string | number, userId: string | number) => del(`/chat-groups/${groupId}/members/${userId}`),
+  delete: (id: string | number) => del(`/chat-groups/${id}`)
+};
+
+export const chatMessagesApi = {
+  getMessages: (groupId: string | number, page: number = 1, limit: number = 50) => 
+    get(`/chat-messages/${groupId}?page=${page}&limit=${limit}`)
+};
+
+/* ══════════════════════════════════════════════════════════
+   NOTIFICATIONS
+══════════════════════════════════════════════════════════ */
+export const notificationsApi = {
+  registerToken: (token: string, deviceType: string = "web") =>
+    post("/notifications/register-token", { token, deviceType }),
+  sendSingle: (payload: { userId: number | string; userRole?: string; title: string; body: string; data?: any }) =>
+    post("/notifications/send-single", payload),
+  sendBulk: (payload: { title: string; body: string; targetRole?: string; data?: any }) =>
+    post("/notifications/send-bulk", payload),
+  sendFiltered: (payload: { title: string; body: string; filters: any; data?: any }) =>
+    post("/notifications/send-filtered", payload),
+  getHistory: (limit: number = 50, offset: number = 0) =>
+    get(`/notifications/history?limit=${limit}&offset=${offset}`),
+};
+
+
 

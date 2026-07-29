@@ -97,3 +97,56 @@ The "Smart Office" biometric attendance system has been integrated for both **St
 ### Frontend UI (`attendance-content.tsx`)
 - Integrated under the **"Attendance"** tab of the Admin Sidebar.
 - Presents stats cards, custom filters, manual adjust modals, Excel import/export buttons, and a warning banner when hardware sync is pending configuration.
+
+---
+
+## 7. Real-Time Group Chat / Messaging
+A fully functional real-time group chat system was built using Socket.io to allow communication between Admin, Teachers, and Students.
+
+### Database Schema
+- **`chat_groups`**: Stores group metadata (`name`, `description`, `created_by`, `is_deleted`).
+- **`chat_group_members`**: Junction table (`group_id`, `user_id`, `user_role`) mapping users to groups. Enforces a strict `UNIQUE KEY (group_id, user_id, user_role)` to prevent ID collisions across distinct user types.
+- **`chat_messages`**: Stores chat history (`group_id`, `sender_id`, `sender_role`, `message_text`, `is_deleted`).
+
+### Backend API & Socket Integrations
+- **REST APIs (`/api/chat-groups`, `/api/chat-messages`)**: Allow fetching groups, messages, and creating new groups.
+- **Socket.io Configuration**: 
+  - Attached to the Express server (`config/socket.js`).
+  - Automatically handles cross-origin (CORS) access for local development (`http://localhost:3000`).
+  - Utilizes JWT token middleware extracted during the socket handshake to securely identify `id` and `role`.
+- **RBAC Security Fix**: All database checks securely query by both `user_id = ? AND user_role = ?` to resolve vulnerabilities regarding matching ID collisions between the `students`, `teachers`, and `admins` tables.
+
+### Frontend Components (`components/chat`)
+- **`ChatLayout` & `ChatStore`**: A Zustand state manager handles incoming socket events seamlessly alongside historical REST fetches.
+- **`ChatGroupList`**: Left panel displaying active user assignments.
+- **`ChatRoom` & `ChatMessageList`**: Right panel rendering messages with dynamic gradient styling for active users.
+- **`ManageGroupMembers`**: Admins have an exclusive UI panel triggered from the `ChatHeader` to actively fetch and select students/teachers to add them into any existing group.
+- **Sidebar Hooks**: Direct links added into Admin, Teacher, and Student sidebars, directing to their specific `/chat` portal routes.
+
+---
+
+## 8. Push Notifications System (Frontend & Backend)
+A complete, end-to-end push notification system was integrated into both the Express backend and Next.js frontend, adopting the exact architecture, database tables, Firebase SDK setup, and admin matrix UI from `Vidyaaniketan2`.
+
+### Database Schema
+- **`fcm_tokens`**: Stores device FCM tokens (`id`, `public_id`, `user_id`, `user_role`, `token`, `device_type`, `last_active`, `created_at`). Indexed on `(user_id, user_role)` for fast lookups.
+- **`notifications`**: Maintains audit log of sent push notifications (`id`, `public_id`, `title`, `body`, `target_type`, `target_role`, `target_criteria`, `sent_by`, `success_count`, `failure_count`, `status`, `created_at`).
+
+### Backend Architecture
+- **Firebase Admin SDK Setup (`src/config/firebase.js`)**: Initializes `firebase-admin` with fallback mock messaging logic if service account key is missing, ensuring the application runs smoothly without crashing.
+- **Notification Service (`src/services/notificationService.js`)**: Handles token registration (upsert & device transfer handling), batching multicast pushes (500 limit per batch), purging failed/invalid device tokens, and logging audit entries.
+- **API Routes (`src/routes/notifications.js`)**:
+  - `POST /api/notifications/register-token`: Authenticated endpoint to store device token.
+  - `POST /api/notifications/send-single`: Admin route to send push notification to single user.
+  - `POST /api/notifications/send-bulk`: Admin route to broadcast push notification to all students or teachers.
+  - `POST /api/notifications/send-filtered`: Admin route to push to filtered user arrays.
+  - `GET /api/notifications/history`: Admin route to fetch past push notification logs.
+
+### Frontend Integration
+- **Service Worker (`public/firebase-messaging-sw.js`)**: Handles background push messages when browser tabs are closed or minimized.
+- **Client Push Token Helper (`lib/push-notification.ts`) & API (`lib/api.ts`)**: Requests notification permissions from browser, generates/retrieves device token, and calls `/api/notifications/register-token`.
+- **Admin Push Notifications Matrix UI (`components/dashboard/push-notifications-content.tsx`)**:
+  - **Compose Push Form**: Target audience selection (Bulk to Students/Teachers or Single User ID), Title, Body content, and Transmit button.
+  - **Push Broadcast Audit Logs Matrix Table**: Real-time delivery stats (`✓ Success` / `✗ Fail`), target role badges, status badges (`Sent` / `Failed`), sender name, and timestamp.
+- **Auto Token Registration**: Automatically registers FCM device tokens when Students log into `StudentShell` or Admins access `/dashboard`.
+

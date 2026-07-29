@@ -12,6 +12,7 @@ import {
   GraduationCap,
   Shield,
   Calendar,
+  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { clearToken } from "@/lib/api";
@@ -24,6 +25,7 @@ const navItems = [
   { title: "My Attendance", url: "/student/attendance", icon: Calendar },
   { title: "Fee Status", url: "/student/fees", icon: Receipt },
   { title: "Class Logs", url: "/student/class-logs", icon: BookMarked },
+  { title: "Group Chat", url: "/student/chat", icon: MessageSquare },
   { title: "Security", url: "/student/change-password", icon: Shield },
 ];
 

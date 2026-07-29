@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Home, Settings, Sparkles, GraduationCap, LogOut } from "lucide-react";
+import { BookOpen, Home, Settings, Sparkles, GraduationCap, LogOut, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { clearToken } from "@/lib/api";
 
@@ -13,6 +13,7 @@ const items = [
   { title: "Student Management", url: "/teacherdashboard/subjects", icon: BookOpen },
   { title: "Homework", url: "/teacherdashboard/homework", icon: BookOpen },
   { title: "Teaching Logs", url: "/teacherdashboard/teaching-logs", icon: BookOpen },
+  { title: "Group Chat", url: "/teacherdashboard/chat", icon: MessageSquare },
   { title: "Settings", url: "/teacherdashboard/settings", icon: Settings },
 ];
 
