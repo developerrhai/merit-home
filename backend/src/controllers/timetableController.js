@@ -67,16 +67,17 @@ exports.getMonth = async (req, res) => {
 exports.viewMonth = async (req, res) => {
   try {
     const { batch, year, month } = req.params;
+    const adminId = req.user.role === 'ADMIN' ? req.user.id : req.user.admin_id;
     
-    // We don't filter by admin_id here because students/teachers just view the batch
+    // Filter by admin_id to prevent multi-tenant data leak
     const [configs] = await db.query(
-      "SELECT * FROM timetable_configs WHERE batch=? AND year=? AND month=?",
-      [batch, year, month]
+      "SELECT * FROM timetable_configs WHERE admin_id=? AND batch=? AND year=? AND month=?",
+      [adminId, batch, year, month]
     );
 
     const [entries] = await db.query(
-      "SELECT * FROM timetable_entries WHERE batch=? AND YEAR(entry_date)=? AND MONTH(entry_date)=?",
-      [batch, year, month]
+      "SELECT * FROM timetable_entries WHERE admin_id=? AND batch=? AND YEAR(entry_date)=? AND MONTH(entry_date)=?",
+      [adminId, batch, year, month]
     );
 
     res.json({ success: true, data: { config: configs, entries: entries } });

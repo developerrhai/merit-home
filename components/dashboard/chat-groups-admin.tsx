@@ -62,7 +62,7 @@ export function ChatGroupsAdmin() {
         
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button className="gap-2" style={{ background: "var(--gradient-primary)" }}>
+            <Button className="gap-2 bg-slate-900 text-white hover:bg-slate-800">
               <PlusCircle className="h-4 w-4" />
               New Group
             </Button>

@@ -13,7 +13,7 @@ export default function StudentTimetablePage() {
   const user = useAuthStore(state => state.user);
   
   // Construct the batch string based on student profile (e.g., "Class 10 Batch A")
-  const studentBatch = user ? `${user.standard || ''} ${user.course || ''}`.trim() : "";
+  const studentBatch = user ? `${(user as any).standard || ''} ${(user as any).course || ''}`.trim() : "";
   
   const currentDate = new Date();
   const [year, setYear] = useState(currentDate.getFullYear());

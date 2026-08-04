@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Home, Settings, Sparkles, GraduationCap, LogOut, MessageSquare } from "lucide-react";
+import { BookOpen, Home, Settings, Sparkles, GraduationCap, LogOut, MessageSquare, FileText, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { clearToken } from "@/lib/api";
 
