@@ -37,7 +37,7 @@ export function ChatGroupsAdmin() {
         setDesc("");
         
         // Refresh groups
-        const groupsRes = await chatGroupsApi.getMyGroups();
+        const groupsRes = await chatGroupsApi.getAll();
         if (groupsRes.success) setGroups(groupsRes.data);
       } else {
         toast.error(res.message || "Failed to create group");

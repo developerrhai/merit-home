@@ -14,6 +14,8 @@ const items = [
   { title: "Homework", url: "/teacherdashboard/homework", icon: BookOpen },
   { title: "Teaching Logs", url: "/teacherdashboard/teaching-logs", icon: BookOpen },
   { title: "Group Chat", url: "/teacherdashboard/chat", icon: MessageSquare },
+  { title: "Assessments", url: "/teacherdashboard/assessments", icon: FileText },
+  { title: "Timetable", url: "/teacherdashboard/timetable", icon: Calendar },
   { title: "Settings", url: "/teacherdashboard/settings", icon: Settings },
 ];
 

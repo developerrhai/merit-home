@@ -69,6 +69,18 @@ export const createCategories = async (url: string, payload: any) => {
   return res.data;
 };
 
+// Generic Update Wrapper
+export const updateCategory = async (url: string, payload: any) => {
+  const res = await api.put(url, payload);
+  return res.data;
+};
+
+// Generic Delete Wrapper
+export const deleteCategory = async (url: string) => {
+  const res = await api.delete(url);
+  return res.data;
+};
+
 
 export const getTeachers = async () => {
   const res = await api.get(`/teachers`);

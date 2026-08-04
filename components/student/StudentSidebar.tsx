@@ -25,6 +25,7 @@ const navItems = [
   { title: "My Attendance", url: "/student/attendance", icon: Calendar },
   { title: "Fee Status", url: "/student/fees", icon: Receipt },
   { title: "Class Logs", url: "/student/class-logs", icon: BookMarked },
+  { title: "Timetable", url: "/student/timetable", icon: Calendar },
   { title: "Group Chat", url: "/student/chat", icon: MessageSquare },
   { title: "Security", url: "/student/change-password", icon: Shield },
 ];

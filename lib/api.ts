@@ -229,6 +229,25 @@ export const staffApi = {
 
 
 
+/* ══════════════════════════════════════════════════════════
+   BRANCHES
+══════════════════════════════════════════════════════════ */
+export const branchesApi = {
+  getAll: () => get("/branches"),
+  create: (data: Record<string, unknown>) => post("/branches", data),
+  update: (id: string | number, data: Record<string, unknown>) => put(`/branches/${id}`, data),
+  remove: (id: string | number) => del(`/branches/${id}`),
+};
+
+/* ══════════════════════════════════════════════════════════
+   BATCHES
+══════════════════════════════════════════════════════════ */
+export const batchesApi = {
+  getByBranch: (branchId: string | number) => get(`/batches/${branchId}`),
+  create: (data: Record<string, unknown>) => post("/batches", data),
+  update: (id: string | number, data: Record<string, unknown>) => put(`/batches/${id}`, data),
+  remove: (id: string | number) => del(`/batches/${id}`),
+};
 
 /* ══════════════════════════════════════════════════════════
    DASHBOARD
@@ -330,6 +349,22 @@ export const notificationsApi = {
     post("/notifications/send-filtered", payload),
   getHistory: (limit: number = 50, offset: number = 0) =>
     get(`/notifications/history?limit=${limit}&offset=${offset}`),
+};
+
+/* ══════════════════════════════════════════════════════════
+   TIMETABLE
+══════════════════════════════════════════════════════════ */
+export const timetableApi = {
+  getMonth: (batch: string, year: number, month: number) =>
+    get(`/timetable/${encodeURIComponent(batch)}/${year}/${month}`),
+  saveConfig: (data: Record<string, unknown>) => post("/timetable/config", data),
+  saveEntry: (data: Record<string, unknown>) => post("/timetable/entry", data),
+  updateEntry: (id: number | string, data: Record<string, unknown>) => put(`/timetable/entry/${id}`, data),
+  deleteEntry: (id: number | string) => del(`/timetable/entry/${id}`),
+  copyMonth: (data: Record<string, unknown>) => post("/timetable/copy-month", data),
+  getBatches: () => get("/timetable/batches"),
+  viewMonth: (batch: string, year: number, month: number) =>
+    get(`/timetable/view/${encodeURIComponent(batch)}/${year}/${month}`),
 };
 
 

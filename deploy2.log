@@ -1,0 +1,33 @@
+From https://github.com/developerrhai/institutemanagement
+ * branch            main       -> FETCH_HEAD
+   aff8da9..72d2323  main       -> origin/main
+error: Your local changes to the following files would be overwritten by merge:
+	src/db/migrate.js
+Please commit your changes or stash them before you merge.
+Aborting
+Updating 9dbc139..72d2323
+📦 Connected to MySQL as root
+✅ Database 'institutems' ready
+✅ All tables created (or already existed)
+✅ branches table verified/created.
+✅ batches table verified/created.
+✅ OTP & rate limiting columns already exist in admins table
+✅ OTP & rate limiting columns already exist in teachers table
+✅ password & deleted_at columns already exist in students table
+✅ encrypted_password or is_first_login already exists in students table
+✅ biometric_code already exists in students table
+✅ biometric_code already exists in teachers table
+✅ late_grace_minutes or scheduled_days already exists in batches table
+✅ student_batches table verified/created.
+✅ teacher_batch_mappings table verified/created.
+✅ attendance table verified/created.
+✅ chat_groups table verified/created.
+✅ chat_group_members table verified/created.
+✅ chat_messages table verified/created.
+✅ fcm_tokens table verified/created.
+✅ notifications table verified/created.
+
+🎉 Migration complete!
+
+Use --update-env to update environment variables
+[PM2][ERROR] Process or Namespace institute-backend not found

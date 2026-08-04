@@ -1,0 +1,63 @@
+Saved working directory and index state WIP on main: 9dbc139 fix: register POST and PUT routes for inquiryExtra
+From https://github.com/developerrhai/institutemanagement
+ * branch            main       -> FETCH_HEAD
+Updating 9dbc139..72d2323
+Fast-forward
+ package.json                             |   4 +-
+ src/app.js                               |   9 +
+ src/config/firebase.js                   |  55 ++++++
+ src/config/socket.js                     | 170 +++++++++++++++++
+ src/controllers/chatGroupController.js   | 192 +++++++++++++++++++
+ src/controllers/chatMessageController.js |  67 +++++++
+ src/controllers/studentAuthController.js |   2 +-
+ src/db/migrate.js                        | 310 +++++++++++++++++++++++++++++++
+ src/db/seed.js                           | 110 +++++++++--
+ src/middleware/authMiddleware.js         |   2 +-
+ src/routes/chatGroups.js                 |  18 ++
+ src/routes/chatMessages.js               |   9 +
+ src/routes/notifications.js              | 160 ++++++++++++++++
+ src/server.js                            |  11 +-
+ src/services/notificationService.js      | 292 +++++++++++++++++++++++++++++
+ 15 files changed, 1394 insertions(+), 17 deletions(-)
+ create mode 100644 src/config/firebase.js
+ create mode 100644 src/config/socket.js
+ create mode 100644 src/controllers/chatGroupController.js
+ create mode 100644 src/controllers/chatMessageController.js
+ create mode 100644 src/routes/chatGroups.js
+ create mode 100644 src/routes/chatMessages.js
+ create mode 100644 src/routes/notifications.js
+ create mode 100644 src/services/notificationService.js
+📦 Connected to MySQL as root
+✅ Database 'institutems' ready
+✅ All tables created (or already existed)
+✅ branches table verified/created.
+✅ batches table verified/created.
+✅ OTP & rate limiting columns already exist in admins table
+✅ OTP & rate limiting columns already exist in teachers table
+✅ password & deleted_at columns already exist in students table
+✅ encrypted_password or is_first_login already exists in students table
+✅ biometric_code already exists in students table
+✅ biometric_code already exists in teachers table
+✅ late_grace_minutes or scheduled_days already exists in batches table
+✅ student_batches table verified/created.
+✅ teacher_batch_mappings table verified/created.
+✅ attendance table verified/created.
+✅ chat_groups table verified/created.
+✅ chat_group_members table verified/created.
+✅ chat_messages table verified/created.
+✅ fcm_tokens table verified/created.
+✅ notifications table verified/created.
+
+🎉 Migration complete!
+
+Use --update-env to update environment variables
+[PM2] Applying action restartProcessId on app [0](ids: [ '0' ])
+[PM2] [institutemanagement](0) ✓
+┌────┬──────────────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name                     │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼──────────────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 1  │ activelife               │ default     │ 1.0.0   │ fork    │ 140390   │ 16D    │ 17   │ online    │ 8.3%     │ 64.7mb   │ ec2-user │ disabled │
+│ 2  │ arise-backend            │ default     │ 1.0.0   │ fork    │ 760174   │ 12h    │ 3    │ online    │ 0%       │ 67.0mb   │ ec2-user │ disabled │
+│ 3  │ brightclasses-backend    │ default     │ 1.0.0   │ fork    │ 749360   │ 18h    │ 1    │ online    │ 0%       │ 74.8mb   │ ec2-user │ disabled │
+│ 0  │ institutemanagement      │ default     │ 1.0.0   │ fork    │ 780157   │ 0s     │ 31   │ online    │ 0%       │ 18.2mb   │ ec2-user │ disabled │
+└────┴──────────────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘

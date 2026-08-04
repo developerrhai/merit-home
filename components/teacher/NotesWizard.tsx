@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowLeft, ArrowRight, ChevronRight, Plus, Save, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronRight, Plus, Save, Loader2, Edit, Trash } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -15,10 +15,10 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { toast } from "sonner";
-// Ensure you export getBranches, getBatches from your notesApi!
 import { 
   getBranches, getBatches, getBoards, getStandards, 
-  getSubjects, getChapters, getNotes, createCategories, getTeachers 
+  getSubjects, getChapters, getNotes, createCategories, getTeachers,
+  updateCategory, deleteCategory
 } from "@/lib/notesApi";
 
 type Note = {
@@ -68,6 +68,41 @@ export function NotesWizard() {
   const [selectedStandard, setSelectedStandard] = useState<any>(null);
   const [selectedSubject, setSelectedSubject] = useState<any>(null);
   const [selectedChapter, setSelectedChapter] = useState<any>(null);
+
+  const [editingItem, setEditingItem] = useState<{type: string, item: any} | null>(null);
+
+  const handleDeleteItem = async (type: string, id: number, name: string) => {
+    if (!confirm(`Are you sure you want to delete ${name}?`)) return;
+    
+    let endpoint = "";
+    if (type === "branch") endpoint = `/branches/${id}`;
+    if (type === "batch") endpoint = `/batches/${id}`;
+    if (type === "board") endpoint = `/boards/${id}`;
+    if (type === "standard") endpoint = `/standards/${id}`;
+    if (type === "subject") endpoint = `/subjects/${id}`;
+    if (type === "chapter") endpoint = `/chapters/${id}`;
+    if (type === "note") endpoint = `/notes/${id}`;
+
+    try {
+      await deleteCategory(endpoint);
+      toast.success(`${type} deleted successfully`);
+      if (step === 1) loadBranches();
+      if (step === 2 && selectedBranch) fetchBatches(selectedBranch.branch_id);
+      if (step === 3) loadBoards();
+      if (step === 4 && selectedBoard && selectedBatch) fetchStandards(selectedBoard.board_id, selectedBatch.batch_id, selectedBranch?.branch_id);
+      if (step === 5 && selectedStandard) fetchSubjects(selectedStandard.stand_id, selectedBranch?.branch_id, selectedBatch?.batch_id, selectedBoard?.board_id);
+      if (step === 6 && selectedSubject) fetchChapters(selectedSubject.sub_id, selectedStandard?.stand_id, selectedBranch?.branch_id, selectedBatch?.batch_id, selectedBoard?.board_id);
+      if (step === 7 && selectedChapter) fetchNotes(selectedChapter.chap_id, selectedSubject.sub_id, selectedStandard?.stand_id, selectedBranch?.branch_id, selectedBatch?.batch_id, selectedBoard?.board_id);
+    } catch (err) {
+      toast.error(`Failed to delete ${type}`);
+    }
+  };
+
+  const handleEditItem = (type: string, item: any) => {
+    setEditingItem({ type, item });
+    setOpen(true);
+  };
+
 
   // --- Fetch Methods ---
   const loadBranches = async () => {
@@ -208,7 +243,10 @@ export function NotesWizard() {
             {branches?.map((b) => (
               <PillOption key={b.branch_id} label={b.branch_name} onClick={() => {
                 setSelectedBranch(b); fetchBatches(b.branch_id); setStep(2);
-              }} />
+              }}
+              onEdit={() => handleEditItem("branch", b)}
+              onDelete={() => handleDeleteItem("branch", b.branch_id, b.branch_name)}
+              />
             ))}
           </>
         )}
@@ -220,7 +258,10 @@ export function NotesWizard() {
             {batches?.map((b) => (
               <PillOption key={b.batch_id} label={`${b.batch_name} (${b.start_time} - ${b.end_time})`} onClick={() => {
                 setSelectedBatch(b); loadBoards(); setStep(3);
-              }} />
+              }}
+              onEdit={() => handleEditItem("batch", b)}
+              onDelete={() => handleDeleteItem("batch", b.batch_id, b.batch_name)}
+              />
             ))}
           </>
         )}
@@ -232,7 +273,10 @@ export function NotesWizard() {
             {boards?.map((b) => (
               <PillOption key={b.board_id} label={b.name} onClick={() => {
                 setSelectedBoard(b); fetchStandards(b.board_id, selectedBatch?.batch_id, selectedBranch?.branch_id); setStep(4);
-              }} />
+              }}
+              onEdit={() => handleEditItem("board", b)}
+              onDelete={() => handleDeleteItem("board", b.board_id, b.name)}
+              />
             ))}
           </>
         )}
@@ -244,13 +288,15 @@ export function NotesWizard() {
             {standards?.map((s) => (
               <PillOption key={s.stand_id} label={s.name} onClick={() => {
                 setSelectedStandard(s); fetchSubjects(s.stand_id, selectedBranch?.branch_id, selectedBatch?.batch_id, selectedBoard?.board_id); setStep(5);
-              }} />
+              }}
+              onEdit={() => handleEditItem("standard", s)}
+              onDelete={() => handleDeleteItem("standard", s.stand_id, s.name)}
+              />
             ))}
           </>
         )}
 
         {/* Step 5: Subject */}
-  {/* Step 5: Subject */}
 {step === 5 && (
   <>
     {subjects.length === 0 && renderEmptyState("subjects")}
@@ -264,13 +310,14 @@ export function NotesWizard() {
           setSelectedSubject(sub); 
           fetchChapters(sub.sub_id, selectedStandard?.stand_id, selectedBranch?.branch_id, selectedBatch?.batch_id, selectedBoard?.board_id); 
           setStep(6);
-        }} 
+        }}
+        onEdit={() => handleEditItem("subject", sub)}
+        onDelete={() => handleDeleteItem("subject", sub.sub_id, sub.name)}
       />
     ))}
   </>
 )}
 
-        {/* Step 6: Chapter */}
         {/* Step 6: Chapter */}
 {step === 6 && (
   <div className="space-y-4">
@@ -285,6 +332,8 @@ export function NotesWizard() {
           fetchNotes(chap.chap_id,selectedSubject?.sub_id, selectedStandard?.stand_id, selectedBranch?.branch_id, selectedBatch?.batch_id, selectedBoard?.board_id); 
           setStep(7);
         }}
+        onEdit={() => handleEditItem("chapter", chap)}
+        onDelete={() => handleDeleteItem("chapter", chap.chap_id, chap.name || chap.chapter_name)}
       >
         {/* Nested Topic List */}
         <div className="border-l-2 border-primary/20 pl-4 space-y-2">
@@ -318,7 +367,10 @@ export function NotesWizard() {
             {notes?.map((n) => (
               <RowOption key={n.note_id} label={n.title} meta={"Click to view note"} onClick={() => {
                 window.open(n.file_url, "_blank");
-              }} />
+              }}
+              onEdit={() => handleEditItem("note", n)}
+              onDelete={() => handleDeleteItem("note", parseInt(n.note_id), n.title)}
+              />
             ))}
           </>
         )}
@@ -328,6 +380,7 @@ export function NotesWizard() {
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
           <button
+            onClick={() => setEditingItem(null)}
             className="fixed bottom-8 right-8 inline-flex items-center gap-2 rounded-2xl px-5 py-3 text-primary-foreground font-medium shadow-[var(--shadow-elegant)] hover:scale-[1.02] active:scale-[0.98] transition-transform z-50"
             style={{ background: "var(--gradient-primary)" }}
           >
@@ -336,7 +389,7 @@ export function NotesWizard() {
         </SheetTrigger>
         <SheetContent side="bottom" className="rounded-t-3xl max-h-[90vh] overflow-y-auto">
           <SheetHeader className="text-left">
-            <SheetTitle>{ADD_LABELS[step - 1]}</SheetTitle>
+            <SheetTitle>{editingItem ? `Edit ${editingItem.type}` : ADD_LABELS[step - 1]}</SheetTitle>
           </SheetHeader>
           <AddNoteForm
             step={step}
@@ -348,7 +401,8 @@ export function NotesWizard() {
               sub_id: selectedSubject?.sub_id,
               chap_id: selectedChapter?.chap_id,
             }}
-            onSuccess={handleSuccessAddition}
+            onSuccess={() => { setEditingItem(null); handleSuccessAddition(); }}
+            editingItem={editingItem}
           />
         </SheetContent>
       </Sheet>
@@ -364,14 +418,36 @@ export function NotesWizard() {
 
 // --- Subcomponents ---
 
-function PillOption({ label, onClick }: { label: string; onClick: () => void }) {
+function PillOption({ label, onClick, onEdit, onDelete }: { label: string; onClick: () => void; onEdit?: (e: React.MouseEvent) => void; onDelete?: (e: React.MouseEvent) => void; }) {
   return (
-    <button
-      onClick={onClick}
-      className="w-full rounded-full bg-step-pill text-step-pill-foreground py-5 text-lg font-medium hover:brightness-95 transition shadow-[var(--shadow-soft)]"
-    >
-      {label}
-    </button>
+    <div className="relative group w-full flex items-center">
+      <button
+        onClick={onClick}
+        className="w-full rounded-full bg-step-pill text-step-pill-foreground py-5 text-lg font-medium hover:brightness-95 transition shadow-[var(--shadow-soft)] pr-24"
+      >
+        {label}
+      </button>
+      {(onEdit || onDelete) && (
+        <div className="absolute right-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          {onEdit && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onEdit(e); }}
+              className="p-2 bg-background/80 rounded-full hover:bg-background shadow-sm text-foreground"
+            >
+              <Edit className="w-4 h-4" />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(e); }}
+              className="p-2 bg-background/80 rounded-full hover:bg-destructive text-destructive hover:text-destructive-foreground shadow-sm transition-colors"
+            >
+              <Trash className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -379,26 +455,49 @@ function RowOption({
   label, 
   meta, 
   onClick, 
+  onEdit,
+  onDelete,
   children 
 }: { 
   label: string; 
   meta?: string; 
   onClick: () => void;
+  onEdit?: (e: React.MouseEvent) => void;
+  onDelete?: (e: React.MouseEvent) => void;
   children?: React.ReactNode; // For nested topics
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <div className="w-full space-y-2">
+    <div className="w-full space-y-2 group">
       <div
-        className="w-full flex items-center justify-between rounded-2xl bg-card border border-border px-5 py-4 text-left hover:border-primary hover:shadow-[var(--shadow-soft)] transition-all cursor-pointer"
+        className="relative w-full flex items-center justify-between rounded-2xl bg-card border border-border px-5 py-4 text-left hover:border-primary hover:shadow-[var(--shadow-soft)] transition-all cursor-pointer"
         onClick={onClick}
       >
-        <div className="flex-1">
+        <div className="flex-1 pr-24">
           <div className="font-semibold text-foreground">{label}</div>
           {meta && <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{meta}</div>}
         </div>
         
+        <div className="absolute right-12 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          {onEdit && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onEdit(e); }}
+              className="p-2 hover:bg-muted rounded-full text-foreground"
+            >
+              <Edit className="w-4 h-4" />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(e); }}
+              className="p-2 hover:bg-destructive/20 text-destructive rounded-full transition-colors"
+            >
+              <Trash className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
         {/* Chevron logic: click to expand topics without triggering the main onClick */}
         <button 
           onClick={(e) => {
@@ -428,10 +527,12 @@ function AddNoteForm({
   step,
   parentIds,
   onSuccess,
+  editingItem
 }: {
   step: number;
   parentIds: any;
   onSuccess: () => void;
+  editingItem?: { type: string, item: any } | null;
 }) {
   const [loading, setLoading] = useState(false);
   const [teachers, setTeachers] = useState<any[]>([]);
@@ -466,6 +567,47 @@ const [selectedTeacherId, setSelectedTeacherId] = useState<string>("");
   const removeTopic = (index: number) => {
     setTopics(topics.filter((_, i) => i !== index));
   };
+
+
+  useEffect(() => {
+    if (editingItem) {
+      const { type, item } = editingItem;
+      if (type === "branch") setName(item.branch_name || "");
+      if (type === "batch") {
+        setName(item.batch_name || "");
+        setStartTime(item.start_time || "");
+        setEndTime(item.end_time || "");
+        setStartDate(item.batch_start_date ? new Date(item.batch_start_date).toISOString().split('T')[0] : "");
+        setEndDate(item.batch_end_date ? new Date(item.batch_end_date).toISOString().split('T')[0] : "");
+      }
+      if (type === "board") setName(item.name || "");
+      if (type === "standard") setName(item.name || "");
+      if (type === "subject") {
+        setName(item.name || "");
+        setSelectedTeacherId(item.teacher_id || "");
+      }
+      if (type === "chapter") {
+        setName(item.name || item.chapter_name || "");
+        setDescription(item.description || "");
+        if (item.topics && item.topics.length > 0) {
+          setTopics(item.topics.map((t: any) => ({
+            topic_name: t.name || "",
+            start_date: t.start_date ? new Date(t.start_date).toISOString().split('T')[0] : "",
+            end_date: t.end_date ? new Date(t.end_date).toISOString().split('T')[0] : ""
+          })));
+        }
+      }
+      if (type === "note") {
+        setTitle(item.title || "");
+        setFile(item.file_url || "");
+      }
+    } else {
+      setName(""); setDescription(""); setTitle(""); setFile("");
+      setStartTime(""); setEndTime(""); setStartDate(""); setEndDate("");
+      setSelectedTeacherId("");
+      setTopics([{ topic_name: "", start_date: "", end_date: "" }]);
+    }
+  }, [editingItem]);
 
 
   useEffect(() => {
@@ -545,7 +687,21 @@ const [selectedTeacherId, setSelectedTeacherId] = useState<string>("");
         payload = { chap_id: parentIds.chap_id, title, file_url: file };
       }
 
-      await postData(endpoint, payload);
+      if (editingItem) {
+        let updateEndpoint = "";
+        const { type, item } = editingItem;
+        if (type === "branch") updateEndpoint = `/branches/${item.branch_id}`;
+        if (type === "batch") updateEndpoint = `/batches/${item.batch_id}`;
+        if (type === "board") updateEndpoint = `/boards/${item.board_id}`;
+        if (type === "standard") updateEndpoint = `/standards/${item.stand_id}`;
+        if (type === "subject") updateEndpoint = `/subjects/${item.sub_id}`;
+        if (type === "chapter") updateEndpoint = `/chapters/${item.chap_id}`;
+        if (type === "note") updateEndpoint = `/notes/${item.note_id}`;
+        
+        await postData(updateEndpoint, payload, true);
+      } else {
+        await postData(endpoint, payload, false);
+      }
     } catch (error) {
       console.error(error);
       toast.error("An error occurred");
@@ -554,12 +710,12 @@ const [selectedTeacherId, setSelectedTeacherId] = useState<string>("");
     }
   };
 
-  const postData = async (url: string, data: any) => {
+  const postData = async (url: string, data: any, isUpdate: boolean) => {
     try {
-      const res = await createCategories(url, data);
-      if (!res?.message && !res?.success) throw new Error("Failed to create record");
+      const res = isUpdate ? await updateCategory(url, data) : await createCategories(url, data);
+      if (!res?.message && !res?.success) throw new Error(`Failed to ${isUpdate ? 'update' : 'create'} record`);
 
-      toast.success(res?.message || "Created successfully");
+      toast.success(res?.message || (isUpdate ? "Updated successfully" : "Created successfully"));
 
       // Reset form
       setName(""); setDescription(""); setTitle(""); setFile("");
