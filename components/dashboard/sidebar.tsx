@@ -2,7 +2,7 @@
 
 import {
   Home, User, UserPlus, GraduationCap, Users,
-  Receipt, ClipboardList, Calendar, Wallet, LogOut, Menu, X, Award, MessageSquare, Bell, BookOpen, Building
+  Receipt, ClipboardList, Calendar, Wallet, LogOut, Menu, X, Award, MessageSquare, Bell, BookOpen, Building, Package
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
@@ -25,6 +25,7 @@ export type SectionType =
   | "inquiry"
   | "appointments"
   | "finance"
+  | "inventory"
   | "attendance"
   | "chatGroups"
   | "pushNotifications"
@@ -54,6 +55,7 @@ const menuItems: { id: SectionType; label: string; icon: React.ReactNode }[] = [
   { id: "inquiry",           label: "New Inquiry",        icon: <ClipboardList className="h-5 w-5" /> },
   { id: "appointments",      label: "Appointments",       icon: <Calendar className="h-5 w-5" /> },
   { id: "finance",           label: "Finance",            icon: <Wallet className="h-5 w-5" /> },
+  { id: "inventory",         label: "Inventory",          icon: <Package className="h-5 w-5" /> },
   { id: "chatGroups",        label: "Group Chat",         icon: <MessageSquare className="h-5 w-5" /> },
 ]
 

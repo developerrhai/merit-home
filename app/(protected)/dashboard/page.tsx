@@ -21,6 +21,7 @@ import { ChatGroupsAdmin }                from "@/components/dashboard/chat-grou
 import { PushNotificationsContent }       from "@/components/dashboard/push-notifications-content"
 import { BranchesBatchesContent }         from "@/components/dashboard/branches-batches-content"
 import { TimetableContent }               from "@/components/dashboard/timetable-content"
+import { InventoryContent }               from "@/components/dashboard/inventory-content"
 import { NotesWizard }                    from "@/components/teacher/NotesWizard"
 import { getToken }                       from "@/lib/api"
 import { registerPushNotificationToken }  from "@/lib/push-notification"
@@ -80,6 +81,7 @@ export default function DashboardPage() {
       case "inquiry":           return <InquiryContent />
       case "appointments":      return <AppointmentsContent />
       case "finance":           return <FinanceContent />
+      case "inventory":         return <InventoryContent />
       case "attendance":        return <AttendanceContent />
       case "chatGroups":        return <ChatGroupsAdmin />
       case "branchesBatches":   return <BranchesBatchesContent />

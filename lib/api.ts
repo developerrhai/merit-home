@@ -367,5 +367,29 @@ export const timetableApi = {
     get(`/timetable/view/${encodeURIComponent(batch)}/${year}/${month}`),
 };
 
+/* ══════════════════════════════════════════════════════════
+   INVENTORY
+══════════════════════════════════════════════════════════ */
+export const inventoryApi = {
+  // Items
+  getItems:    (filters: { category?: string; search?: string } = {}) =>
+    get(`/inventory/items${qs(filters)}`),
+  createItem:  (data: Record<string, unknown>) => post("/inventory/items", data),
+  updateItem:  (id: number, data: Record<string, unknown>) => put(`/inventory/items/${id}`, data),
+  deleteItem:  (id: number) => del(`/inventory/items/${id}`),
+  getSummary:  () => get("/inventory/items/summary"),
 
+  // Distributions
+  getDistributions: (filters: {
+    item_id?: string; student_id?: string;
+    date_from?: string; date_to?: string;
+    search?: string;
+  } = {}) => get(`/inventory/distributions${qs(filters)}`),
+  distribute:       (data: Record<string, unknown>) => post("/inventory/distribute", data),
+  undoDistribution: (id: number) => del(`/inventory/distributions/${id}`),
+  getStudentItems:  (studentId: number) => get(`/inventory/student/${studentId}/items`),
 
+  // Exports
+  exportItemsUrl: () => `${BASE}/inventory/export/items`,
+  exportDistributionsUrl: (params: string) => `${BASE}/inventory/export/distributions${params}`,
+};
