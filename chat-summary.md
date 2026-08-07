@@ -150,3 +150,11 @@ A complete, end-to-end push notification system was integrated into both the Exp
   - **Push Broadcast Audit Logs Matrix Table**: Real-time delivery stats (`✓ Success` / `✗ Fail`), target role badges, status badges (`Sent` / `Failed`), sender name, and timestamp.
 - **Auto Token Registration**: Automatically registers FCM device tokens when Students log into `StudentShell` or Admins access `/dashboard`.
 
+### Session 14: Bug Fixes & Live EC2 Deployment (August 7, 2026)
+- **Admin Group Chat Fix**: Resolved a Server-Side Rendering (SSR) hydration mismatch in `ChatHeader.tsx` and `ChatMessageList.tsx` by wrapping `localStorage.getItem` in a `useEffect` hook, which fixed the issue of the chat page crashing on load.
+- **Student Inquiry Form Fixes**: 
+  - Restored the side-drawer animation by replacing a buggy `requestAnimationFrame` with a `setTimeout` in `InquiryStudentsContent.tsx`.
+  - Corrected the branch selection dropdown `name` attribute from `location` to `branch` to properly bind form data.
+  - Fixed a MySQL strict mode `Incorrect date value` error by removing the `new Date().toISOString()` override, allowing the backend to generate a clean, SQL-compatible timestamp default.
+- **Teacher Batch Creation Fix**: Diagnosed a `403 Forbidden` API error occurring when teachers tried to create new batches via the Notes Wizard. Modified `batchRoute.js` backend middleware to `authorize(["ADMIN", "TEACHER"])`.
+- **Live EC2 Deployment**: Validated the fixes locally, then successfully executed the EC2 sync workflow using `robocopy`, pushed the backend to GitHub `feature/otp-password-reset`, and applied the code to the live server (`13.204.199.132`) via `ssh`, followed by a PM2 restart.
