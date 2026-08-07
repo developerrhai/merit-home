@@ -584,6 +584,47 @@ function DropdownManageForm({
     setFormChapterId(initialValues.chapterId);
   }, [initialValues]);
 
+  // Dynamic Local Data Fetching
+  const [localBatches, setLocalBatches] = useState<any[]>([]);
+  const [localStandards, setLocalStandards] = useState<any[]>([]);
+  const [localSubjects, setLocalSubjects] = useState<any[]>([]);
+  const [localChapters, setLocalChapters] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (formBranchId) {
+      import("@/lib/notesApi").then((m) => {
+        m.getBatches(Number(formBranchId)).then((res) => setLocalBatches(res?.data || res || []));
+      });
+    } else setLocalBatches([]);
+  }, [formBranchId]);
+
+  useEffect(() => {
+    if (formBoardId && formBatchId && formBranchId) {
+      import("@/lib/notesApi").then((m) => {
+        m.getStandards(Number(formBoardId), Number(formBatchId), Number(formBranchId))
+          .then((res) => setLocalStandards(res?.data || res || []));
+      });
+    } else setLocalStandards([]);
+  }, [formBoardId, formBatchId, formBranchId]);
+
+  useEffect(() => {
+    if (formStandardId && formBranchId && formBatchId && formBoardId) {
+      import("@/lib/notesApi").then((m) => {
+        m.getSubjects(Number(formStandardId), Number(formBranchId), Number(formBatchId), Number(formBoardId))
+          .then((res) => setLocalSubjects(res?.data || res || []));
+      });
+    } else setLocalSubjects([]);
+  }, [formStandardId, formBranchId, formBatchId, formBoardId]);
+
+  useEffect(() => {
+    if (formSubjectId && formStandardId && formBranchId && formBatchId && formBoardId) {
+      import("@/lib/notesApi").then((m) => {
+        m.getChapters(Number(formSubjectId), Number(formStandardId), Number(formBranchId), Number(formBatchId), Number(formBoardId))
+          .then((res) => setLocalChapters(res?.data || res || []));
+      });
+    } else setLocalChapters([]);
+  }, [formSubjectId, formStandardId, formBranchId, formBatchId, formBoardId]);
+
   const addTopicField = () => {
     setTopics([...topics, { topic_name: "", start_date: "", end_date: "" }]);
   };
@@ -765,7 +806,7 @@ function DropdownManageForm({
               disabled={loading}
             >
               <option value="">Select Batch</option>
-              {dropdowns.batches.map((b) => (
+              {localBatches.map((b) => (
                 <option key={b.batch_id} value={b.batch_id}>{b.batch_name}</option>
               ))}
             </select>
@@ -783,7 +824,7 @@ function DropdownManageForm({
             disabled={loading}
           >
             <option value="">Select Standard</option>
-            {dropdowns.standards.map((s) => (
+            {localStandards.map((s) => (
               <option key={s.stand_id} value={s.stand_id}>{s.name}</option>
             ))}
           </select>
@@ -800,7 +841,7 @@ function DropdownManageForm({
             disabled={loading}
           >
             <option value="">Select Subject</option>
-            {dropdowns.subjects.map((s) => (
+            {localSubjects.map((s) => (
               <option key={s.sub_id} value={s.sub_id}>{s.name}</option>
             ))}
           </select>
@@ -817,7 +858,7 @@ function DropdownManageForm({
             disabled={loading}
           >
             <option value="">Select Chapter</option>
-            {dropdowns.chapters.map((c) => (
+            {localChapters.map((c) => (
               <option key={c.chap_id} value={c.chap_id}>{c.name || c.chapter_name}</option>
             ))}
           </select>
