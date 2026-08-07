@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Header } from "@/components/ui/header"
 
@@ -11,12 +11,6 @@ const BOARDS = [
   "CBSE",
   "ICSE",
   "IB",
-]
-
-const BRANCHES = [
-  "Thergaon",
-  "Wakad",
-  "Chinchwad",
 ]
 
 const STANDARDS = [
@@ -101,6 +95,14 @@ export default function InquiryFormPage() {
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState("")
+  const [branches, setBranches] = useState<any[]>([])
+
+  useEffect(() => {
+    fetch(process.env.NEXT_PUBLIC_API_URL + "/branches")
+      .then(r => r.json())
+      .then(d => { if(d.success) setBranches(d.branches.map((b: any) => b.branch_name)) })
+      .catch(console.error)
+  }, [])
 
   const set = (key: keyof FormData, val: string) =>
     setForm(prev => ({ ...prev, [key]: val }))
@@ -324,7 +326,7 @@ export default function InquiryFormPage() {
                   <Field label="Select Branch" required>
                     <select value={form.location} onChange={e => set("location", e.target.value)} className={selectCls}>
                       <option value="">-- Select Branch --</option>
-                      {BRANCHES.map(b => <option key={b} value={b}>{b}</option>)}
+                      {(branches.length > 0 ? branches : []).map(b => <option key={b} value={b}>{b}</option>)}
                     </select>
                   </Field>
                   <Field label="Last Exam Marks / Grade %">

@@ -1,7 +1,7 @@
 "use client"
 
 import { Header } from "@/components/ui/header"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 const BOARDS = ["CBSE", "ICSE", "State Board", "IB", "IGCSE", "Other", "Cambridge Board"]
 
@@ -46,6 +46,14 @@ export default function AdmissionFormPage() {
   const [credentials, setCredentials] = useState<{loginId: string, tempPassword: string} | null>(null)
   const [error, setError]           = useState("")
   const [touched, setTouched]       = useState<Partial<Record<keyof FormData, boolean>>>({})
+  const [branches, setBranches] = useState<any[]>([])
+
+  useEffect(() => {
+    fetch(process.env.NEXT_PUBLIC_API_URL + "/branches")
+      .then(r => r.json())
+      .then(d => { if(d.success) setBranches(d.branches.map((b: any) => b.branch_name)) })
+      .catch(console.error)
+  }, [])
 
   const isSenior = form.standard === "11th Standard" || form.standard === "12th Standard"
   const hasStandard = form.standard !== ""
@@ -429,7 +437,7 @@ export default function AdmissionFormPage() {
                 placeholder="Select Branch"
                 value={form.branch}
                 onChange={v => set("branch", v)}
-                options={BRANCHES}
+                options={branches.length > 0 ? branches : BRANCHES}
                 error={fieldError("branch")}
                 icon={
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

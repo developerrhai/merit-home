@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 const TEACHERS = [
   "Dr. Anil Mehta",
@@ -50,6 +50,21 @@ export default function TeacherUpdatePage() {
   const [submitted,  setSubmitted]  = useState(false)
   const [error,      setError]      = useState("")
   const [touched,    setTouched]    = useState<Partial<Record<keyof FormData, boolean>>>({})
+  const [meta, setMeta] = useState<{ branches: any[], batches: any[] }>({ branches: [], batches: [] })
+
+  useEffect(() => {
+    fetch(process.env.NEXT_PUBLIC_API_URL + "/teacher-updates/public/meta")
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) {
+          setMeta({
+            branches: d.branches.map((b: any) => b.branch_name),
+            batches: d.batches.map((b: any) => b.batch_name)
+          })
+        }
+      })
+      .catch(console.error)
+  }, [])
 
   const set = (key: keyof FormData, val: string) => {
     setForm(prev => ({ ...prev, [key]: val }))
@@ -208,7 +223,7 @@ export default function TeacherUpdatePage() {
                   <SelectGroup
                     label="Branch" required icon="📍"
                     value={form.branch} onChange={v => set("branch", v)}
-                    options={BRANCHES} placeholder="Select Branch"
+                    options={meta.branches.length > 0 ? meta.branches : BRANCHES} placeholder="Select Branch"
                     error={fieldErr("branch")}
                   />
                 </div>
@@ -218,7 +233,7 @@ export default function TeacherUpdatePage() {
                   <SelectGroup
                     label="Batch" required icon="🏫"
                     value={form.batch} onChange={v => set("batch", v)}
-                    options={BATCHES} placeholder="Select Batch"
+                    options={meta.batches.length > 0 ? meta.batches : BATCHES} placeholder="Select Batch"
                     error={fieldErr("batch")}
                   />
                   <SelectGroup

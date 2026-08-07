@@ -31,25 +31,33 @@ export default function HomeworkPage() {
   const [homeworks, setHomeworks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [batches, setBatches] = useState<any[]>([]);
+  const [branches, setBranches] = useState<any[]>([]);
 
-  // Fetch batches
+  // Fetch batches and branches
   useEffect(() => {
-    const loadBatches = async () => {
+    const loadData = async () => {
       try {
-        const res = await fetch(process.env.NEXT_PUBLIC_API_URL + "/batches/all", {
-          headers: {
-            "Authorization": `Bearer ${localStorage.getItem("token")}`
-          }
-        });
-        const data = await res.json();
-        if (data.success && data.data) {
-          setBatches(data.data.map((b: any) => b.batch_name));
+        const [batchesRes, branchesRes] = await Promise.all([
+          fetch(process.env.NEXT_PUBLIC_API_URL + "/batches/all", {
+            headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
+          }),
+          fetch(process.env.NEXT_PUBLIC_API_URL + "/branches")
+        ]);
+        
+        const batchesData = await batchesRes.json();
+        const branchesData = await branchesRes.json();
+        
+        if (batchesData.success && batchesData.data) {
+          setBatches(batchesData.data.map((b: any) => b.batch_name));
+        }
+        if (branchesData.success && branchesData.branches) {
+          setBranches(branchesData.branches.map((b: any) => b.branch_name));
         }
       } catch (err) {
-        console.error("Failed to load batches", err);
+        console.error("Failed to load batches/branches", err);
       }
     };
-    loadBatches();
+    loadData();
   }, []);
 
   // Create Modal
@@ -303,7 +311,7 @@ export default function HomeworkPage() {
                 <select id="branch" value={newHw.branch} onChange={e => setNewHw({...newHw, branch: e.target.value})} 
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20">
                   <option value="">Select Branch</option>
-                  {BRANCHES.map(b => <option key={b} value={b}>{b}</option>)}
+                  {(branches.length > 0 ? branches : BRANCHES).map(b => <option key={b} value={b}>{b}</option>)}
                 </select>
               </div>
               <div className="space-y-1.5">
