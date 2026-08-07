@@ -264,7 +264,7 @@ export function InquiryStudentsContent() {
     setEditingId(null); setFormData(EMPTY_FORM)
     setFormError(""); setFormSuccess("")
     setDrawerMounted(true)
-    requestAnimationFrame(() => setDrawerOpen(true))
+    setTimeout(() => setDrawerOpen(true), 10)
   }
 
   const openEditDrawer = (inq: Inquiry) => {
@@ -303,7 +303,7 @@ export function InquiryStudentsContent() {
       if (editingId !== null) {
         data = await inquiryExtraApi.update(editingId, formData)
       } else {
-        data = await inquiryExtraApi.create({ ...formData, inquiry_date: new Date().toISOString() })
+        data = await inquiryExtraApi.create(formData)
       }
       if (data.success) {
         setFormSuccess(editingId ? "Inquiry updated successfully!" : "Inquiry added successfully!")

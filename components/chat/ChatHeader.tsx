@@ -1,5 +1,7 @@
 "use client";
 
+import React, { useState, useEffect } from "react";
+
 import { useChatStore } from "@/lib/chatStore";
 import { Users } from "lucide-react";
 import { ManageGroupMembers } from "./ManageGroupMembers";
@@ -8,14 +10,17 @@ export function ChatHeader() {
   const { activeGroupId, groups } = useChatStore();
   const group = groups.find((g) => g.id === activeGroupId);
 
-  let isAdmin = false;
-  try {
-     const info = localStorage.getItem("userInfo");
-     if (info) {
-       const userRole = JSON.parse(info).role;
-       isAdmin = userRole === "admin";
-     }
-  } catch (e) {}
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    try {
+      const info = localStorage.getItem("userInfo");
+      if (info) {
+        const userRole = JSON.parse(info).role;
+        setIsAdmin(userRole === "admin");
+      }
+    } catch (e) {}
+  }, []);
 
   if (!group) return null;
 

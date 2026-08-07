@@ -2,7 +2,7 @@
 
 import { useChatStore, ChatMessage as ChatMessageType } from "@/lib/chatStore";
 import { cn } from "@/lib/utils";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 
@@ -10,14 +10,16 @@ export function ChatMessageList({ groupId }: { groupId: number }) {
   const messages = useChatStore((state) => state.messages[groupId] || []);
   const scrollRef = useRef<HTMLDivElement>(null);
   
-  // Get current user id from localStorage token/info for self-styling
-  let currentUserId = -1;
-  try {
-     const info = localStorage.getItem("userInfo");
-     if (info) {
-       currentUserId = JSON.parse(info).id;
-     }
-  } catch (e) {}
+  const [currentUserId, setCurrentUserId] = useState(-1);
+
+  useEffect(() => {
+    try {
+      const info = localStorage.getItem("userInfo");
+      if (info) {
+        setCurrentUserId(JSON.parse(info).id);
+      }
+    } catch (e) {}
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
