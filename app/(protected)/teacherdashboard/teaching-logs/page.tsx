@@ -23,6 +23,27 @@ const BATCHES = [
 export default function TeachingLogsPage() {
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [batches, setBatches] = useState<any[]>([]);
+
+  // Fetch batches
+  useEffect(() => {
+    const loadBatches = async () => {
+      try {
+        const res = await fetch(process.env.NEXT_PUBLIC_API_URL + "/batches/all", {
+          headers: {
+            "Authorization": `Bearer ${localStorage.getItem("token")}`
+          }
+        });
+        const data = await res.json();
+        if (data.success && data.data) {
+          setBatches(data.data.map((b: any) => b.batch_name));
+        }
+      } catch (err) {
+        console.error("Failed to load batches", err);
+      }
+    };
+    loadBatches();
+  }, []);
 
   // Log Dialog
   const [createOpen, setCreateOpen] = useState(false);
@@ -145,7 +166,7 @@ export default function TeachingLogsPage() {
                 <select id="batch" value={newLog.batch} onChange={e => setNewLog({...newLog, batch: e.target.value})}
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20">
                   <option value="">Select Batch</option>
-                  {BATCHES.map(b => <option key={b} value={b}>{b}</option>)}
+                  {(batches.length > 0 ? batches : BATCHES).map(b => <option key={b} value={b}>{b}</option>)}
                 </select>
               </div>
             </div>

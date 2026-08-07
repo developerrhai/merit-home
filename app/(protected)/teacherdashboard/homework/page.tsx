@@ -30,6 +30,27 @@ const STANDARDS = [
 export default function HomeworkPage() {
   const [homeworks, setHomeworks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [batches, setBatches] = useState<any[]>([]);
+
+  // Fetch batches
+  useEffect(() => {
+    const loadBatches = async () => {
+      try {
+        const res = await fetch(process.env.NEXT_PUBLIC_API_URL + "/batches/all", {
+          headers: {
+            "Authorization": `Bearer ${localStorage.getItem("token")}`
+          }
+        });
+        const data = await res.json();
+        if (data.success && data.data) {
+          setBatches(data.data.map((b: any) => b.batch_name));
+        }
+      } catch (err) {
+        console.error("Failed to load batches", err);
+      }
+    };
+    loadBatches();
+  }, []);
 
   // Create Modal
   const [createOpen, setCreateOpen] = useState(false);
