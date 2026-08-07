@@ -7,7 +7,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 
 export function ChatMessageList({ groupId }: { groupId: number }) {
-  const messages = useChatStore((state) => state.messages[groupId] || []);
+  const messagesFromStore = useChatStore((state) => state.messages[groupId]);
+  const messages = messagesFromStore || [];
   const scrollRef = useRef<HTMLDivElement>(null);
   
   const [currentUserId, setCurrentUserId] = useState(-1);
