@@ -33,6 +33,7 @@ export type SectionType =
   | "curriculum"
   | "timetable"
   | "branchesBatches"
+  | "recycleBin"
 
 interface SidebarProps {
   activeSection: SectionType
@@ -238,9 +239,12 @@ export function Sidebar({
 
         {/* Top-level explicit Recycle Bin Link */}
         <button
-          onClick={() => { router.push("/admin/recycle-bin"); setMobileOpen(false) }}
+          onClick={() => { onSectionChange("recycleBin"); setMobileOpen(false) }}
           className={cn(
-            "w-full flex items-center gap-3 px-4 py-3 text-left transition-all duration-200 hover:bg-slate-700 hover:translate-x-1 text-slate-300"
+            "w-full flex items-center gap-3 px-4 py-3 text-left transition-all duration-200 hover:bg-slate-700 hover:translate-x-1",
+            activeSection === "recycleBin"
+              ? "bg-slate-700 border-r-4 border-amber-400 text-amber-400"
+              : "text-slate-300"
           )}
         >
           <span className="shrink-0"><Trash className="h-5 w-5" /></span>

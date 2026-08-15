@@ -9,9 +9,8 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Trash, RefreshCcw } from "lucide-react";
 
-export default function RecycleBinPage() {
+export function RecycleBinContent() {
   const token = useAuthStore((state) => state.token);
-  const userRole = useAuthStore((state) => state.user?.role);
   const _hasHydrated = useAuthStore((state) => state._hasHydrated);
   
   const router = useRouter();
@@ -42,17 +41,11 @@ export default function RecycleBinPage() {
 
   useEffect(() => {
     if (!mounted || !_hasHydrated) return;
-    // Basic protection - only Admin/SuperAdmin
-    if (!token || (userRole !== "ADMIN" && userRole !== "SUPERADMIN")) {
-      router.push("/");
-      return;
-    }
-
     if (hasFetched.current) return;
     hasFetched.current = true;
 
     fetchRecycleBin();
-  }, [token, userRole, router, mounted, _hasHydrated]);
+  }, [token, mounted, _hasHydrated]);
 
   const handleRestore = async (id: number) => {
     try {

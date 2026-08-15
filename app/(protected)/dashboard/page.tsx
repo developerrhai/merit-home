@@ -22,6 +22,7 @@ import { PushNotificationsContent }       from "@/components/dashboard/push-noti
 import { BranchesBatchesContent }         from "@/components/dashboard/branches-batches-content"
 import { TimetableContent }               from "@/components/dashboard/timetable-content"
 import { InventoryContent }               from "@/components/dashboard/inventory-content"
+import { RecycleBinContent }              from "@/components/dashboard/recycle-bin-content"
 import { NotesWizard }                    from "@/components/teacher/NotesWizard"
 import { getToken }                       from "@/lib/api"
 import { registerPushNotificationToken }  from "@/lib/push-notification"
@@ -86,6 +87,7 @@ export default function DashboardPage() {
       case "chatGroups":        return <ChatGroupsAdmin />
       case "branchesBatches":   return <BranchesBatchesContent />
       case "timetable":         return <TimetableContent />
+      case "recycleBin":        return <RecycleBinContent />
       case "curriculum":        return <div className="p-4 bg-card rounded-xl border border-border/70 shadow-sm"><NotesWizard /></div>
       default:                  return <DashboardContent />
     }
