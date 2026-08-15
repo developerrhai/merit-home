@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useChatStore } from "@/lib/chatStore";
 import { chatMessagesApi } from "@/lib/api";
 import { ChatHeader } from "./ChatHeader";
 import { ChatMessageList } from "./ChatMessageList";
 import { ChatInput } from "./ChatInput";
 import { MessageSquare } from "lucide-react";
+import { getSocket } from "@/lib/socket";
 
 export function ChatRoom() {
   const { activeGroupId, messages, setMessages } = useChatStore();
@@ -14,6 +15,10 @@ export function ChatRoom() {
 
   useEffect(() => {
     if (!activeGroupId) return;
+
+    // Join the socket room for this group
+    const socket = getSocket();
+    socket.emit("join_group", { groupId: activeGroupId });
 
     const loadMessages = async () => {
       setLoading(true);
@@ -30,11 +35,8 @@ export function ChatRoom() {
       }
     };
 
-    // Only load if we don't have them in state (or could always reload to ensure fresh)
-    const currentMessages = messages[activeGroupId];
-    if (!currentMessages || currentMessages.length === 0) {
-      loadMessages();
-    }
+    // Always reload messages when switching groups to ensure freshness
+    loadMessages();
   }, [activeGroupId]);
 
   if (!activeGroupId) {
