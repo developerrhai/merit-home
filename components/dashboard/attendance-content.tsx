@@ -55,6 +55,8 @@ export function AttendanceContent() {
   const [role, setRole] = useState<"STUDENT" | "TEACHER">("STUDENT");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [standardFilter, setStandardFilter] = useState("");
+  const [branchFilter, setBranchFilter] = useState("");
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [notifying, setNotifying] = useState(false);
@@ -276,13 +278,24 @@ export function AttendanceContent() {
     reader.readAsBinaryString(file);
   };
 
+  // Compute dynamic filter options
+  const uniqueStandards = useMemo(() => {
+    return Array.from(new Set(records.map(r => r.student?.standard).filter(Boolean))).sort();
+  }, [records]);
+
+  const uniqueBranches = useMemo(() => {
+    return Array.from(new Set(records.map(r => r.student?.course).filter(Boolean))).sort();
+  }, [records]);
+
   // Compute summary stats dynamically
   const summary = useMemo(() => {
     const filtered = records.filter(r => {
       const matchSearch = r.student.name.toLowerCase().includes(search.toLowerCase()) || 
                           r.student.code.toLowerCase().includes(search.toLowerCase());
       const matchStatus = !statusFilter || r.status === statusFilter;
-      return matchSearch && matchStatus;
+      const matchStandard = !standardFilter || r.student?.standard === standardFilter;
+      const matchBranch = !branchFilter || r.student?.course === branchFilter;
+      return matchSearch && matchStatus && matchStandard && matchBranch;
     });
 
     return {
@@ -427,6 +440,34 @@ export function AttendanceContent() {
                 className="pl-8 h-9 text-xs rounded-xl"
               />
             </div>
+
+            {/* Standard Filter */}
+            {role === "STUDENT" && uniqueStandards.length > 0 && (
+              <select
+                value={standardFilter}
+                onChange={(e) => setStandardFilter(e.target.value)}
+                className="rounded-xl border border-input bg-background h-9 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-primary/20 w-32 cursor-pointer"
+              >
+                <option value="">All Classes</option>
+                {uniqueStandards.map((std, i) => (
+                  <option key={i} value={std as string}>{std as string}</option>
+                ))}
+              </select>
+            )}
+
+            {/* Branch Filter */}
+            {role === "STUDENT" && uniqueBranches.length > 0 && (
+              <select
+                value={branchFilter}
+                onChange={(e) => setBranchFilter(e.target.value)}
+                className="rounded-xl border border-input bg-background h-9 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-primary/20 w-32 cursor-pointer"
+              >
+                <option value="">All Branches</option>
+                {uniqueBranches.map((br, i) => (
+                  <option key={i} value={br as string}>{br as string}</option>
+                ))}
+              </select>
+            )}
 
             {/* Status Filter */}
             <select
