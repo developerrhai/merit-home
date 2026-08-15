@@ -207,7 +207,6 @@ export function Sidebar({
                     >
                       Student Marks
                     </button>
-                    </button>
                   </div>
                 )}
               </div>
