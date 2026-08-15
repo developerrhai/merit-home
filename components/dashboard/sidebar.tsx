@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { clearToken } from "@/lib/api"
+import { useRouter } from "next/navigation"
 
 export type SectionType =
   | "dashboard"
@@ -69,6 +70,7 @@ export function Sidebar({
   const [mobileOpen,  setMobileOpen]  = useState(false)
   const [teacherOpen, setTeacherOpen] = useState(false)
   const [studentOpen, setStudentOpen] = useState(false)
+  const router = useRouter()
 
   const handleLogout = () => {
     clearToken()
@@ -204,6 +206,14 @@ export function Sidebar({
                       )}
                     >
                       Student Marks
+                    </button>
+                    <button
+                      onClick={() => { router.push("/admin/recycle-bin"); setMobileOpen(false) }}
+                      className={cn(
+                        "block w-full text-left px-3 py-2 text-sm hover:text-amber-400 text-slate-300"
+                      )}
+                    >
+                      Recycle Bin
                     </button>
                   </div>
                 )}
