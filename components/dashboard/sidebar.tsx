@@ -2,7 +2,7 @@
 
 import {
   Home, User, UserPlus, GraduationCap, Users,
-  Receipt, ClipboardList, Calendar, Wallet, LogOut, Menu, X, Award, MessageSquare, Bell, BookOpen, Building, Package
+  Receipt, ClipboardList, Calendar, Wallet, LogOut, Menu, X, Award, MessageSquare, Bell, BookOpen, Building, Package, Trash
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
@@ -207,13 +207,6 @@ export function Sidebar({
                     >
                       Student Marks
                     </button>
-                    <button
-                      onClick={() => { router.push("/admin/recycle-bin"); setMobileOpen(false) }}
-                      className={cn(
-                        "block w-full text-left px-3 py-2 text-sm hover:text-amber-400 text-slate-300"
-                      )}
-                    >
-                      Recycle Bin
                     </button>
                   </div>
                 )}
@@ -243,6 +236,22 @@ export function Sidebar({
             </button>
           )
         })}
+
+        {/* Top-level explicit Recycle Bin Link */}
+        <button
+          onClick={() => { router.push("/admin/recycle-bin"); setMobileOpen(false) }}
+          className={cn(
+            "w-full flex items-center gap-3 px-4 py-3 text-left transition-all duration-200 hover:bg-slate-700 hover:translate-x-1 text-slate-300"
+          )}
+        >
+          <span className="shrink-0"><Trash className="h-5 w-5" /></span>
+          <span className={cn(
+            "whitespace-nowrap transition-all duration-300 overflow-hidden",
+            expanded || mobile ? "max-w-[160px] opacity-100" : "max-w-0 opacity-0"
+          )}>
+            Recycle Bin
+          </span>
+        </button>
       </nav>
 
       {/* Logout */}
