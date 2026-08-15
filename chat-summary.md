@@ -158,3 +158,14 @@ A complete, end-to-end push notification system was integrated into both the Exp
   - Fixed a MySQL strict mode `Incorrect date value` error by removing the `new Date().toISOString()` override, allowing the backend to generate a clean, SQL-compatible timestamp default.
 - **Teacher Batch Creation Fix**: Diagnosed a `403 Forbidden` API error occurring when teachers tried to create new batches via the Notes Wizard. Modified `batchRoute.js` backend middleware to `authorize(["ADMIN", "TEACHER"])`.
 - **Live EC2 Deployment**: Validated the fixes locally, then successfully executed the EC2 sync workflow using `robocopy`, pushed the backend to GitHub `feature/otp-password-reset`, and applied the code to the live server (`13.204.199.132`) via `ssh`, followed by a PM2 restart.
+
+### Session Update (August 7, 2026 - Evening)
+
+1. **Fixed 'Manage' Button in Notes Dropdown (NotesDropdownView)**:
+   - **Issue**: The child dropdowns (e.g., Parent Batch, Parent Standard) inside the Manage drawer were empty if the user hadn't explicitly selected the parent options on the main page background.
+   - **Fix**: Updated DropdownManageForm to independently fetch its own dynamic options whenever a parent selection changes inside the drawer itself, breaking the dependency on the main page state. Pushed to GitHub and Vercel.
+
+2. **Resolved 'No batch mappings configured' Error**:
+   - **Issue**: Teachers were getting a 403 Forbidden alert when creating Homework or Teaching Logs. The backend checkTeacherBatchAccess function was blocking them if the Admin hadn't explicitly mapped them to any batches.
+   - **Fix**: We had previously pushed a code fix so that if a teacher has   mapped batches, the system bypasses the strict check and defaults to allowing access. We verified this logic is correctly deployed on EC2 and force-restarted institutemanagement via PM2 to ensure the active API process is running this exact code.
+

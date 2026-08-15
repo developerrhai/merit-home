@@ -7,7 +7,7 @@ exports.getAll = async (req, res) => {
 /*    let sql = "SELECT * FROM students WHERE admin_id = ? OR admin_id = 8";
     const params = [req.admin.id]; */
 
- let sql = "SELECT * FROM students WHERE 1=1";
+ let sql = "SELECT * FROM students WHERE 1=1 AND deleted_at IS NULL";
     const params = [];
 
     if (standard) { sql += " AND standard = ?"; params.push(standard); }
@@ -31,7 +31,7 @@ exports.getAll = async (req, res) => {
 exports.getOne = async (req, res) => {
   try {
     const [rows] = await db.query(
-      "Select * from students WHERE id = ?",
+      "SELECT * FROM students WHERE id = ? AND deleted_at IS NULL",
       [req.params.id]
     );
     if (!rows.length) return res.status(404).json({ success: false, message: "Student not found" });
@@ -49,7 +49,7 @@ exports.create = async (req, res) => {
 
     if ((email && email.trim() !== "") || (phone && phone.trim() !== "")) {
       const [existing] = await db.query(
-        "SELECT id FROM students WHERE (email = ? AND email != '') OR (phone = ? AND phone != '')", 
+        "SELECT id FROM students WHERE ((email = ? AND email != '') OR (phone = ? AND phone != '')) AND deleted_at IS NULL", 
         [email || 'N/A', phone || 'N/A']
       );
       if (existing.length > 0) {
@@ -110,7 +110,7 @@ exports.update = async (req, res) => {
 exports.remove = async (req, res) => {
   try {
     const [result] = await db.query(
-      "DELETE FROM students WHERE id = ?",
+      "UPDATE students SET deleted_at = NOW() WHERE id = ?",
       [req.params.id]
     );
     if (!result.affectedRows) return res.status(404).json({ success: false, message: "Student not found" });
