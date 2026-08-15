@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import { useAuthStore } from "@/lib/store";
-import { useRouter } from "next/navigation";
 import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +12,6 @@ export function RecycleBinContent() {
   const token = useAuthStore((state) => state.token);
   const _hasHydrated = useAuthStore((state) => state._hasHydrated);
   
-  const router = useRouter();
   const [deletedStudents, setDeletedStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
