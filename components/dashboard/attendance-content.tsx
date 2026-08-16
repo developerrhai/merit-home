@@ -290,8 +290,8 @@ export function AttendanceContent() {
   // Compute summary stats dynamically
   const summary = useMemo(() => {
     const filtered = records.filter(r => {
-      const matchSearch = r.student.name.toLowerCase().includes(search.toLowerCase()) || 
-                          r.student.code.toLowerCase().includes(search.toLowerCase());
+      const matchSearch = (r.student?.name?.toLowerCase() || "").includes(search.toLowerCase()) || 
+                          (r.student?.code?.toLowerCase() || "").includes(search.toLowerCase());
       const matchStatus = !statusFilter || r.status === statusFilter;
       const matchStandard = !standardFilter || r.student?.standard === standardFilter;
       const matchBranch = !branchFilter || r.student?.course === branchFilter;
