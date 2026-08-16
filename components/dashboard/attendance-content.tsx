@@ -289,12 +289,15 @@ export function AttendanceContent() {
 
   // Compute summary stats dynamically
   const summary = useMemo(() => {
+    const q = search.trim().toLowerCase();
     const filtered = records.filter(r => {
-      const matchSearch = (r.student?.name?.toLowerCase() || "").includes(search.toLowerCase()) || 
-                          (r.student?.code?.toLowerCase() || "").includes(search.toLowerCase());
+      const matchSearch = !q || 
+                          (r.student?.name?.toLowerCase() || "").includes(q) || 
+                          (r.student?.code?.toLowerCase() || "").includes(q) ||
+                          (r.student?.contact?.toLowerCase() || "").includes(q);
       const matchStatus = !statusFilter || r.status === statusFilter;
-      const matchStandard = !standardFilter || r.student?.standard === standardFilter;
-      const matchBranch = !branchFilter || r.student?.course === branchFilter;
+      const matchStandard = role !== "STUDENT" || !standardFilter || r.student?.standard === standardFilter;
+      const matchBranch = role !== "STUDENT" || !branchFilter || r.student?.course === branchFilter;
       return matchSearch && matchStatus && matchStandard && matchBranch;
     });
 
@@ -307,7 +310,13 @@ export function AttendanceContent() {
       onLeave: filtered.filter(r => r.status === "On Leave").length,
       halfDay: filtered.filter(r => r.status === "Half-Day").length
     };
-  }, [records, search, statusFilter]);
+  }, [records, search, statusFilter, standardFilter, branchFilter, role]);
+
+  const handleRoleChange = (newRole: "STUDENT" | "TEACHER") => {
+    setRole(newRole);
+    setStandardFilter("");
+    setBranchFilter("");
+  };
 
   return (
     <div className="space-y-6">
@@ -327,7 +336,7 @@ export function AttendanceContent() {
           {/* Role Toggle Switch */}
           <div className="inline-flex rounded-xl border bg-muted p-1">
             <button
-              onClick={() => setRole("STUDENT")}
+              onClick={() => handleRoleChange("STUDENT")}
               className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
                 role === "STUDENT" ? "bg-white shadow-sm text-primary" : "text-muted-foreground"
               }`}
@@ -335,7 +344,7 @@ export function AttendanceContent() {
               Students
             </button>
             <button
-              onClick={() => setRole("TEACHER")}
+              onClick={() => handleRoleChange("TEACHER")}
               className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
                 role === "TEACHER" ? "bg-white shadow-sm text-primary" : "text-muted-foreground"
               }`}
@@ -442,11 +451,11 @@ export function AttendanceContent() {
             </div>
 
             {/* Standard Filter */}
-            {role === "STUDENT" && uniqueStandards.length > 0 && (
+            {role === "STUDENT" && (
               <select
                 value={standardFilter}
                 onChange={(e) => setStandardFilter(e.target.value)}
-                className="rounded-xl border border-input bg-background h-9 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-primary/20 w-32 cursor-pointer"
+                className="rounded-xl border border-input bg-background h-9 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-primary/20 min-w-[120px] cursor-pointer"
               >
                 <option value="">All Classes</option>
                 {uniqueStandards.map((std, i) => (
@@ -456,11 +465,11 @@ export function AttendanceContent() {
             )}
 
             {/* Branch Filter */}
-            {role === "STUDENT" && uniqueBranches.length > 0 && (
+            {role === "STUDENT" && (
               <select
                 value={branchFilter}
                 onChange={(e) => setBranchFilter(e.target.value)}
-                className="rounded-xl border border-input bg-background h-9 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-primary/20 w-32 cursor-pointer"
+                className="rounded-xl border border-input bg-background h-9 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-primary/20 min-w-[120px] cursor-pointer"
               >
                 <option value="">All Branches</option>
                 {uniqueBranches.map((br, i) => (
@@ -473,7 +482,7 @@ export function AttendanceContent() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded-xl border border-input bg-background h-9 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-primary/20 w-36 cursor-pointer"
+              className="rounded-xl border border-input bg-background h-9 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-primary/20 min-w-[130px] cursor-pointer"
             >
               <option value="">All Statuses</option>
               <option value="Present">Present</option>
